@@ -1,0 +1,41 @@
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 萨摩耶爪印装饰 */
+.paw-print {
+  position: fixed;
+  opacity: 0.1;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.paw-print-1 {
+  top: 10%;
+  left: 5%;
+  font-size: 60px;
+  transform: rotate(-15deg);
+}
+
+.paw-print-2 {
+  top: 20%;
+  right: 8%;
+  font-size: 40px;
+  transform: rotate(25deg);
+}
+
+.paw-print-3 {
+  bottom: 15%;
+  left: 10%;
+  font-size: 50px;
+  transform: rotate(-10deg);
+}
+
+.paw-print-4 {
+  bottom: 25%;
+  right: 5%;
+  font-size: 45px;
+  transform: rotate(20deg);
+}

@@ -1,0 +1,120 @@
+.message-input-container {
+  padding: 16px;
+  background: var(--samoyed-white);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.message-input-wrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.attach-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--samoyed-pink);
+  background: var(--samoyed-white);
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.attach-btn:hover:not(:disabled) {
+  background: var(--samoyed-pink);
+  color: var(--samoyed-white);
+}
+
+.attach-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.message-input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid var(--samoyed-pink);
+  border-radius: 24px;
+  font-size: 15px;
+  resize: none;
+  max-height: 120px;
+  font-family: inherit;
+  line-height: 1.5;
+  transition: all 0.3s ease;
+}
+
+.message-input:focus {
+  outline: none;
+  border-color: var(--accent-pink);
+  box-shadow: 0 0 0 3px rgba(255, 107, 138, 0.1);
+}
+
+.message-input:disabled {
+  background: var(--samoyed-cream);
+}
+
+.send-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, var(--accent-pink) 0%, var(--samoyed-pink-dark) 100%);
+  color: var(--samoyed-white);
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.send-btn:hover:not(:disabled) {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-md);
+}
+
+.send-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.uploading-status {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* 移动端优化 */
+@media (max-width: 480px) {
+  .message-input-wrapper {
+    padding: 0 8px;
+  }
+  
+  .attach-btn,
+  .send-btn {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .message-input {
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+}
