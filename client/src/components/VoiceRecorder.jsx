@@ -5,10 +5,13 @@ export default function VoiceRecorder({ onRecordEnd, onCancel }) {
   const [isRecording, setIsRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
   const [audioBlob, setAudioBlob] = useState(null)
+  const [showCancelHint, setShowCancelHint] = useState(false)
   const mediaRecorderRef = useRef(null)
   const chunksRef = useRef([])
   const timerRef = useRef(null)
   const streamRef = useRef(null)
+  const touchStartY = useRef(0)
+  const containerRef = useRef(null)
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60)
@@ -105,13 +108,102 @@ export default function VoiceRecorder({ onRecordEnd, onCancel }) {
     startRecording()
   }
 
+  // 触摸开始 - 记录起始位置
+  const handleTouchStart = (e) => {
+    touchStartY.current = e.touches[0].clientY
+  }
+
+  // 触摸移动 - 检测上滑取消
+  const handleTouchMove = (e) => {
+    if (!isRecording || !containerRef.current) return
+    
+    const currentY = e.touches[0].clientY
+    const deltaY = touchStartY.current - currentY
+    
+    // 上滑超过 100px 显示取消提示
+    if (deltaY > 100) {
+      setShowCancelHint(true)
+    } else {
+      setShowCancelHint(false)
+    }
+  }
+
+  // 触摸结束 - 判断是否取消
+  const handleTouchEnd = (e) => {
+    if (!isRecording) return
+    
+    const currentY = e.changedTouches[0].clientY
+    const deltaY = touchStartY.current - currentY
+    
+    // 上滑超过 150px 执行取消
+    if (deltaY > 150) {
+      handleCancel()
+    } else {
+      setShowCancelHint(false)
+    }
+  }
+
+  // 鼠标事件支持（桌面端测试）
+  const handleMouseDown = (e) => {
+    touchStartY.current = e.clientY
+  }
+
+  const handleMouseMove = (e) => {
+    if (!isRecording || !containerRef.current) return
+    
+    const deltaY = touchStartY.current - e.clientY
+    if (deltaY > 100) {
+      setShowCancelHint(true)
+    } else {
+      setShowCancelHint(false)
+    }
+  }
+
+  const handleMouseUp = (e) => {
+    if (!isRecording) return
+    
+    const deltaY = touchStartY.current - e.clientY
+    if (deltaY > 150) {
+      handleCancel()
+    } else {
+      setShowCancelHint(false)
+    }
+  }
+
+  // 短录音提示（小于 1 秒）
+  const confirmShortRecording = () => {
+    if (recordingTime < 1) {
+      if (window.confirm('录音时间太短，确定要发送吗？')) {
+        handleSend()
+      }
+    } else {
+      handleSend()
+    }
+  }
+
   // 自动开始录音
   useState(() => {
     startRecording()
   })
 
   return (
-    <div className="voice-recorder">
+    <div 
+      className="voice-recorder" 
+      ref={containerRef}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+    >
+      {showCancelHint && isRecording && (
+        <div className="cancel-hint">
+          <div className="cancel-icon">❌</div>
+          <div className="cancel-text">松手取消</div>
+        </div>
+      )}
+      
       <div className="recorder-content">
         {audioBlob ? (
           // 录音完成，预览
@@ -131,7 +223,7 @@ export default function VoiceRecorder({ onRecordEnd, onCancel }) {
                 </svg>
                 <span>重录</span>
               </button>
-              <button className="action-btn send" onClick={handleSend}>
+              <button className="action-btn send" onClick={confirmShortRecording}>
                 <svg viewBox="0 0 24 24" width="24" height="24">
                   <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" fill="currentColor"/>
                 </svg>
