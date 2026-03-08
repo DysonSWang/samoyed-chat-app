@@ -1,0 +1,16 @@
+{
+  "sprint": {
+    "current": "sprint-001",
+    "start": "2026-03-09",
+    "end": "2026-03-11",
+    "status": "IN_PROGRESS"
+  },
+  "agents": {
+    "pm": { "status": "ACTIVE", "currentTask": "TASK-PM-001" },
+    "architect": { "status": "READY", "currentTask": null },
+    "developer": { "status": "IDLE", "currentTask": null, "blockedBy": "TASK-ARCH-001" },
+    "qa": { "status": "IDLE", "currentTask": null, "blockedBy": "TASK-DEV-002" }
+  },
+  "tasks": { "total": 10, "todo": 8, "inProgress": 1, "blocked": 2, "done": 0 },
+  "lastUpdate": "$(date -Iseconds)"
+}
