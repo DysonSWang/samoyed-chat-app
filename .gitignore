@@ -39,6 +39,14 @@ jspm_packages/
 # dotenv environment variables file
 .env
 .env.test
+.env.local
+.env.*.local
+
+# Secrets and credentials
+*.pem
+*.key
+secret*
+credential*
 
 # parcel-cache
 .parcel-cache
@@ -74,3 +82,16 @@ Thumbs.db
 # Logs
 backend.log
 frontend.log
+
+# Sensitive documents (contain secrets/credentials)
+PROJECT_SUMMARY.md
+*测试报告*.md
+*调研报告*.md
+*评审意见书*.md
+*需求文档*.md
+*.docx
+
+# Temporary files
+*.tmp
+*.bak
+*.temp
