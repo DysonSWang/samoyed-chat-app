@@ -34,8 +34,7 @@ const storage = multer.diskStorage({
 const fileFilter = (req, file, cb) => {
   const allowedTypes = [
     'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-    'video/mp4', 'video/webm',
-    'audio/webm', 'audio/ogg', 'audio/mp4', 'audio/m4a'
+    'video/mp4', 'video/webm'
   ];
   
   if (allowedTypes.includes(file.mimetype)) {
@@ -144,45 +143,6 @@ router.post('/video', authMiddleware, upload.single('file'), async (req, res) =>
     }
     
     res.status(500).json({ error: '上传视频失败：' + err.message });
-  }
-});
-
-// 上传音频
-router.post('/audio', authMiddleware, upload.single('file'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: '请选择要上传的音频' });
-    }
-
-    // 生成 OSS 路径
-    const fileExt = path.extname(req.file.originalname);
-    const objectKey = `samoyed-chat/audios/${uuidv4()}${fileExt}`;
-
-    // 上传到 OSS
-    const result = await client.put(objectKey, req.file.path);
-
-    // 删除本地临时文件
-    fs.unlinkSync(req.file.path);
-
-    const audioUrl = result.url || `${process.env.OSS_CDN_URL}/${objectKey}`;
-
-    res.json({
-      success: true,
-      url: audioUrl,
-      type: 'audio',
-      mimeType: req.file.mimetype,
-      size: req.file.size,
-      duration: req.body.duration || 0
-    });
-  } catch (err) {
-    console.error('上传音频失败:', err);
-    
-    // 清理本地文件
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
-    
-    res.status(500).json({ error: '上传音频失败：' + err.message });
   }
 });
 

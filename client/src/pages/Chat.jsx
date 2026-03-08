@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
+import api from '../utils/api'
 import io from 'socket.io-client'
 import MessageInput from '../components/MessageInput'
 import MessageList from '../components/MessageList'
@@ -24,9 +24,8 @@ export default function Chat({ token }) {
   useEffect(() => {
     // 初始化 Socket 连接
     if (!socketInitialized.current) {
-      const serverUrl = window.location.hostname === 'localhost' 
-        ? 'http://localhost:3000' 
-        : `http://${window.location.hostname}:3000`
+      // 使用相对路径，通过 Vite 代理连接到后端
+      const serverUrl = window.location.origin
       
       console.log('连接 Socket 服务器:', serverUrl)
       
@@ -36,7 +35,8 @@ export default function Chat({ token }) {
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
         timeout: 20000,
-        transports: ['websocket', 'polling']
+        transports: ['websocket', 'polling'],
+        path: '/socket.io'
       })
       
       socketInitialized.current = true
@@ -51,16 +51,15 @@ export default function Chat({ token }) {
 
   const initChat = async () => {
     try {
-      const userRes = await axios.get('/api/auth/me', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      console.log('开始初始化聊天，API base:', api.defaults.baseURL || '相对路径')
+      const userRes = await api.get('/api/auth/me')
+      console.log('用户信息:', userRes.data)
       
       if (userRes.data.success) {
         setUser(userRes.data.user)
         
-        const coupleRes = await axios.get('/api/auth/couple', {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+        const coupleRes = await api.get('/api/auth/couple')
+        console.log('情侣信息:', coupleRes.data)
         
         if (coupleRes.data.success && coupleRes.data.couple) {
           setCouple(coupleRes.data.couple)
@@ -73,14 +72,28 @@ export default function Chat({ token }) {
           
           setOnline(true)
         } else {
-          navigate('/pair')
+          // 未绑定情侣，跳转到配对页面
+          console.log('未绑定情侣，跳转到配对页面')
+          navigate('/pair', { replace: true })
+          return
         }
       }
     } catch (err) {
       console.error('初始化聊天失败:', err)
+      console.error('错误详情:', {
+        message: err.message,
+        code: err.code,
+        status: err.response?.status,
+        data: err.response?.data
+      })
       if (err.response?.status === 401) {
         localStorage.removeItem('token')
-        navigate('/login')
+        navigate('/login', { replace: true })
+      } else if (err.code === 'ERR_NETWORK' || err.code === 'ECONNREFUSED') {
+        // 网络错误，清除 token 并跳转到登录页
+        console.error('网络错误，无法连接后端 API')
+        localStorage.removeItem('token')
+        navigate('/login', { replace: true })
       }
     } finally {
       setLoading(false)
@@ -89,9 +102,7 @@ export default function Chat({ token }) {
 
   const loadMessages = async () => {
     try {
-      const response = await axios.get('/api/messages', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const response = await api.get('/api/messages')
       
       if (response.data.success) {
         setMessages(response.data.messages)
@@ -162,9 +173,7 @@ export default function Chat({ token }) {
 
   const sendMessage = async (messageData) => {
     try {
-      const response = await axios.post('/api/messages', messageData, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const response = await api.post('/api/messages', messageData)
       
       if (response.data.success) {
         // 先添加到本地列表
@@ -188,6 +197,9 @@ export default function Chat({ token }) {
   }
 
   const sendTypingStatus = (isTyping) => {
+    // 未绑定时不发送输入状态
+    if (!couple || !user) return
+    
     if (isTyping) {
       socket.emit('typing', { coupleId: couple.id, userId: user.id })
     } else {
@@ -198,14 +210,30 @@ export default function Chat({ token }) {
   const handleDeleteMessages = async (messageIds) => {
     try {
       for (const id of messageIds) {
-        await axios.delete(`/api/messages/${id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+        await api.delete(`/api/messages/${id}`)
       }
       setMessages(prev => prev.filter(m => !messageIds.includes(m.id)))
     } catch (err) {
       console.error('删除失败:', err)
       alert('删除失败，请重试')
+    }
+  }
+
+  const handleRecallMessage = async (messageId) => {
+    try {
+      const response = await api.post(`/api/messages/${messageId}/recall`)
+      
+      if (response.data.success) {
+        // 更新本地消息状态
+        setMessages(prev => prev.map(m => 
+          m.id === messageId 
+            ? { ...m, is_recalled: 1, content: '', media_url: null, type: 'text' }
+            : m
+        ))
+      }
+    } catch (err) {
+      console.error('撤回失败:', err)
+      alert(err.response?.data?.error || '撤回失败，请重试')
     }
   }
 
@@ -220,6 +248,18 @@ export default function Chat({ token }) {
     )
   }
 
+  // 未绑定时不渲染聊天界面（会立即跳转）
+  if (!couple || !user) {
+    return (
+      <div className="page chat-page">
+        <div className="loading-container">
+          <div className="loading-emoji">🐕</div>
+          <p>正在跳转...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="page chat-page">
       <ChatHeader 
@@ -229,14 +269,15 @@ export default function Chat({ token }) {
       
       <MessageList 
         messages={messages}
-        currentUserId={user?.id}
+        currentUserId={user.id}
         partnerTyping={partnerTyping}
         onDeleteMessages={handleDeleteMessages}
+        onRecallMessage={handleRecallMessage}
       />
       
       <MessageInput 
         token={token}
-        coupleId={couple?.id}
+        coupleId={couple.id}
         onSendMessage={sendMessage}
         onTyping={sendTypingStatus}
       />

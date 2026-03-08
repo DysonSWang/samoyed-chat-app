@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
+import api from '../utils/api'
 
 export default function Pair() {
   const navigate = useNavigate()
@@ -18,9 +18,7 @@ export default function Pair() {
   const checkCoupleStatus = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await axios.get('/api/auth/couple', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const response = await api.get('/api/auth/couple')
       
       if (response.data.success && response.data.couple) {
         setCoupleInfo(response.data.couple)
@@ -36,10 +34,7 @@ export default function Pair() {
     setLoading(true)
 
     try {
-      const token = localStorage.getItem('token')
-      const response = await axios.post('/api/auth/generate-invite', null, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const response = await api.post('/api/auth/generate-invite', {})
       
       if (response.data.success) {
         setInviteCode(response.data.inviteCode)
@@ -59,10 +54,8 @@ export default function Pair() {
 
     try {
       const token = localStorage.getItem('token')
-      const response = await axios.post('/api/auth/accept-invite', {
+      const response = await api.post('/api/auth/accept-invite', {
         inviteCode: acceptCode.trim().toUpperCase()
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
       })
       
       if (response.data.success) {
@@ -170,8 +163,7 @@ export default function Pair() {
           <div className="tip-emoji">🦊</div>
           <p>
             <strong>小贴士：</strong>
-            邀请码 8 位字母数字组合，有效期 7 天。
-            绑定后，只有你们可以查看聊天记录哦～
+            邀请码 8 位字母数字组合，分享给你的 TA 即可绑定关系。
           </p>
         </div>
       </div>

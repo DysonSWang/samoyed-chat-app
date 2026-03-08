@@ -78,14 +78,11 @@ router.post('/', authMiddleware, (req, res) => {
       return res.status(400).json({ error: '消息内容不能为空' });
     }
 
-    // 使用东八区时间戳
-    const now = new Date();
-    const beijingTime = new Date(now.getTime() + (8 * 3600000));
-    
+    // 服务器时区已是北京时间 (Asia/Shanghai)，直接使用
     const result = db.prepare(`
       INSERT INTO messages (couple_id, sender_id, content, type, media_url, media_type, duration, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, datetime(?, 'localtime'))
-    `).run(user.couple_id, req.userId, content || '', type, mediaUrl || null, mediaType || null, duration || null, beijingTime.toISOString());
+      VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))
+    `).run(user.couple_id, req.userId, content || '', type, mediaUrl || null, mediaType || null, duration || null);
 
     const message = db.prepare(`
       SELECT m.*, u.username as sender_username, u.nickname as sender_nickname, u.avatar as sender_avatar
@@ -125,6 +122,41 @@ router.delete('/:id', authMiddleware, (req, res) => {
   } catch (err) {
     console.error('删除消息失败:', err);
     res.status(500).json({ error: '删除消息失败' });
+  }
+});
+
+// 撤回消息（无时间限制）
+router.post('/:id/recall', authMiddleware, (req, res) => {
+  try {
+    const db = getDatabase();
+    const messageId = req.params.id;
+
+    // 验证消息所有权
+    const message = db.prepare('SELECT * FROM messages WHERE id = ?').get(messageId);
+    
+    if (!message) {
+      return res.status(404).json({ error: '消息不存在' });
+    }
+
+    if (message.sender_id !== req.userId) {
+      return res.status(403).json({ error: '只能撤回自己的消息' });
+    }
+
+    if (message.is_recalled) {
+      return res.status(400).json({ error: '消息已撤回' });
+    }
+
+    // 标记为已撤回（保留记录但清空内容）
+    db.prepare(`
+      UPDATE messages 
+      SET is_recalled = 1, content = '', media_url = NULL, type = 'text'
+      WHERE id = ?
+    `).run(messageId);
+
+    res.json({ success: true, message: '消息已撤回' });
+  } catch (err) {
+    console.error('撤回消息失败:', err);
+    res.status(500).json({ error: '撤回消息失败' });
   }
 });
 

@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import ImagePreview from './ImagePreview'
-import AudioMessage from './AudioMessage'
 
-export default function MessageList({ messages, currentUserId, partnerTyping, onDeleteMessages }) {
+export default function MessageList({ messages, currentUserId, partnerTyping, onDeleteMessages, onRecallMessage }) {
   const [previewImage, setPreviewImage] = useState(null)
   const [selectMode, setSelectMode] = useState(false)
   const [selectedMessages, setSelectedMessages] = useState([])
@@ -21,24 +20,46 @@ export default function MessageList({ messages, currentUserId, partnerTyping, on
   }, [messages, partnerTyping])
 
   const formatTime = (timestamp) => {
-    // 处理时间戳，确保使用东八区时间
+    // 服务器存储的是北京时间，直接解析
     const date = new Date(timestamp)
-    // 如果时间戳是 UTC 时间，转换为东八区
-    const utcTime = date.getTime() + (date.getTimezoneOffset() * 60000)
-    const beijingTime = new Date(utcTime + (8 * 3600000))
-    
     const now = new Date()
-    const diff = now - beijingTime
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24))
     
-    if (days === 0) {
-      return beijingTime.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
-    } else if (days === 1) {
-      return '昨天'
-    } else if (days < 7) {
-      return beijingTime.toLocaleDateString('zh-CN', { weekday: 'long' })
+    // 获取时间字符串 (HH:mm)
+    const timeStr = date.toLocaleTimeString('zh-CN', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false 
+    })
+    
+    // 获取日期部分（按北京时间）
+    const dateStr = date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'numeric', day: 'numeric' })
+    const nowDateStr = now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'numeric', day: 'numeric' })
+    
+    // 计算昨天的日期字符串
+    const yesterday = new Date(now)
+    yesterday.setDate(yesterday.getDate() - 1)
+    const yesterdayDateStr = yesterday.toLocaleDateString('zh-CN', { year: 'numeric', month: 'numeric', day: 'numeric' })
+    
+    if (dateStr === nowDateStr) {
+      // 今天：只显示时间
+      return timeStr
+    } else if (dateStr === yesterdayDateStr) {
+      // 昨天：显示"昨天 HH:mm"
+      return `昨天 ${timeStr}`
     } else {
-      return beijingTime.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
+      // 计算相差天数
+      const diffTime = Math.abs(now - date)
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+      
+      if (diffDays < 7) {
+        // 7 天内：显示"星期 X HH:mm"
+        const weekday = date.toLocaleDateString('zh-CN', { weekday: 'long' })
+        return `${weekday} ${timeStr}`
+      } else {
+        // 超过 7 天：显示"月/日 HH:mm"
+        const monthDay = date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
+        return `${monthDay} ${timeStr}`
+      }
     }
   }
 
@@ -71,6 +92,14 @@ export default function MessageList({ messages, currentUserId, partnerTyping, on
     }
   }
 
+  const handleRecall = () => {
+    if (menuMessageId) {
+      onRecallMessage?.(menuMessageId)
+      setShowMenu(false)
+      setMenuMessageId(null)
+    }
+  }
+
   const toggleSelectMode = () => {
     setSelectMode(!selectMode)
     setSelectedMessages([])
@@ -94,6 +123,18 @@ export default function MessageList({ messages, currentUserId, partnerTyping, on
   }
 
   const renderMessageContent = (message) => {
+    // 处理撤回的消息
+    if (message.is_recalled) {
+      return (
+        <div className="recalled-message">
+          <span className="recalled-icon">↩️</span>
+          <span className="recalled-text">
+            {message.sender_id === currentUserId ? '你撤回了一条消息' : '对方撤回了一条消息'}
+          </span>
+        </div>
+      )
+    }
+    
     if (message.type === 'image') {
       return (
         <div 
@@ -117,21 +158,11 @@ export default function MessageList({ messages, currentUserId, partnerTyping, on
       )
     }
     
-    if (message.type === 'audio') {
-      return (
-        <AudioMessage 
-          url={message.media_url}
-          duration={message.duration}
-          isOwn={message.sender_id === currentUserId}
-        />
-      )
-    }
-    
     if (message.type === 'emoji') {
       return (
         <div className="emoji-message">
-          <img src={message.media_url} alt={message.content} />
-          {message.content && <span className="emoji-caption">{message.content}</span>}
+          <span className="emoji-character">{message.content}</span>
+          {message.emojiName && <span className="emoji-caption">{message.emojiName}</span>}
         </div>
       )
     }
@@ -211,6 +242,9 @@ export default function MessageList({ messages, currentUserId, partnerTyping, on
           >
             <button onClick={toggleSelectMode}>
               <span>☑️</span> 多选
+            </button>
+            <button onClick={handleRecall}>
+              <span>↩️</span> 撤回
             </button>
             <button onClick={handleDelete}>
               <span>🗑️</span> 删除

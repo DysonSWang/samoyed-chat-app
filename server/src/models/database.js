@@ -40,7 +40,7 @@ function initDatabase() {
         CREATE TABLE IF NOT EXISTS couples (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           user1_id INTEGER NOT NULL,
-          user2_id INTEGER NOT NULL,
+          user2_id INTEGER,
           invite_code TEXT UNIQUE,
           status TEXT DEFAULT 'pending',
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -61,6 +61,7 @@ function initDatabase() {
           media_type TEXT,
           duration INTEGER,
           is_deleted INTEGER DEFAULT 0,
+          is_recalled INTEGER DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (couple_id) REFERENCES couples(id),
           FOREIGN KEY (sender_id) REFERENCES users(id)

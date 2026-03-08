@@ -145,6 +145,53 @@ router.post('/generate-invite', authMiddleware, (req, res) => {
     const db = getDatabase();
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId);
 
+    if (!user) {
+      return res.status(401).json({ error: '用户不存在，请重新登录' });
+    }
+
+    if (user.couple_id) {
+      return res.status(400).json({ error: '您已经配对成功，无法生成邀请码' });
+    }
+
+    // 检查是否已有待处理的邀请
+    const existingInvite = db.prepare(
+      'SELECT * FROM couples WHERE (user1_id = ? OR user2_id = ?) AND status = ?'
+    ).get(req.userId, req.userId, 'pending');
+
+    if (existingInvite) {
+      return res.json({
+        success: true,
+        inviteCode: existingInvite.invite_code,
+        coupleId: existingInvite.id
+      });
+    }
+
+    // 生成邀请码
+    const inviteCode = uuidv4().substring(0, 8).toUpperCase();
+
+    // 创建情侣关系记录
+    const result = db.prepare(`
+      INSERT INTO couples (user1_id, user2_id, invite_code, status)
+      VALUES (?, ?, ?, 'pending')
+    `).run(req.userId, null, inviteCode);
+
+    res.json({
+      success: true,
+      inviteCode,
+      coupleId: result.lastInsertRowid
+    });
+  } catch (err) {
+    console.error('生成邀请码失败:', err);
+    res.status(500).json({ error: '生成邀请码失败' });
+  }
+});
+
+// 生成配对邀请码 (GET 兼容，避免 body-parser 解析 null 的问题)
+router.get('/generate-invite', authMiddleware, (req, res) => {
+  try {
+    const db = getDatabase();
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId);
+
     if (user.couple_id) {
       return res.status(400).json({ error: '您已经配对成功，无法生成邀请码' });
     }
@@ -243,13 +290,77 @@ router.put('/avatar', authMiddleware, (req, res) => {
   }
 });
 
+// 更新个人资料（仅昵称）
+router.put('/profile', authMiddleware, (req, res) => {
+  try {
+    const { nickname } = req.body;
+    const db = getDatabase();
+
+    if (!nickname) {
+      return res.status(400).json({ error: '昵称不能为空' });
+    }
+
+    // 更新用户信息
+    db.prepare(`
+      UPDATE users 
+      SET nickname = ?, updated_at = CURRENT_TIMESTAMP 
+      WHERE id = ?
+    `).run(nickname, req.userId);
+
+    res.json({ 
+      success: true, 
+      message: '资料已更新',
+      user: { nickname }
+    });
+  } catch (err) {
+    console.error('更新资料失败:', err);
+    res.status(500).json({ error: '更新资料失败' });
+  }
+});
+
+// 解除绑定
+router.post('/unbind', authMiddleware, (req, res) => {
+  try {
+    const db = getDatabase();
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId);
+
+    if (!user.couple_id) {
+      return res.status(400).json({ error: '您还未绑定关系' });
+    }
+
+    // 获取情侣关系
+    const couple = db.prepare('SELECT * FROM couples WHERE id = ?').get(user.couple_id);
+    if (!couple) {
+      return res.status(404).json({ error: '绑定关系不存在' });
+    }
+
+    // 解除双方的 couple_id
+    db.prepare(`
+      UPDATE users SET couple_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE couple_id = ?
+    `).run(user.couple_id);
+
+    // 删除情侣关系记录
+    db.prepare(`
+      DELETE FROM couples WHERE id = ?
+    `).run(user.couple_id);
+
+    res.json({ 
+      success: true, 
+      message: '已解除绑定关系'
+    });
+  } catch (err) {
+    console.error('解除绑定失败:', err);
+    res.status(500).json({ error: '解除绑定失败' });
+  }
+});
+
 // 获取配对信息
 router.get('/couple', authMiddleware, (req, res) => {
   try {
     const db = getDatabase();
     const user = db.prepare('SELECT couple_id FROM users WHERE id = ?').get(req.userId);
 
-    if (!user.couple_id) {
+    if (!user || !user.couple_id) {
       return res.json({ success: true, couple: null });
     }
 

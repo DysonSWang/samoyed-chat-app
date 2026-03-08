@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
+import api from '../utils/api'
 import './Profile.css'
 
 export default function Profile({ token, onLogout }) {
@@ -9,23 +9,29 @@ export default function Profile({ token, onLogout }) {
   const [couple, setCouple] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [showEditPanel, setShowEditPanel] = useState(false)
+  const [editNickname, setEditNickname] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [showManagePanel, setShowManagePanel] = useState(false)
 
   useEffect(() => {
     loadUserInfo()
   }, [])
 
+  useEffect(() => {
+    if (user) {
+      setEditNickname(user.nickname || '')
+    }
+  }, [user])
+
   const loadUserInfo = async () => {
     try {
-      const userRes = await axios.get('/api/auth/me', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const userRes = await api.get('/api/auth/me')
       
       if (userRes.data.success) {
         setUser(userRes.data.user)
         
-        const coupleRes = await axios.get('/api/auth/couple', {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+        const coupleRes = await api.get('/api/auth/couple')
         
         if (coupleRes.data.success) {
           setCouple(coupleRes.data.couple)
@@ -53,18 +59,13 @@ export default function Profile({ token, onLogout }) {
       const formData = new FormData()
       formData.append('file', file)
       
-      const response = await axios.post('/api/upload/image', formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
+      const response = await api.post('/api/upload/image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       })
 
       if (response.data.success) {
-        await axios.put('/api/auth/avatar', { 
+        await api.put('/api/auth/avatar', { 
           avatar: response.data.url 
-        }, {
-          headers: { Authorization: `Bearer ${token}` }
         })
         
         setUser(prev => ({ ...prev, avatar: response.data.url }))
@@ -81,6 +82,53 @@ export default function Profile({ token, onLogout }) {
   const handleLogout = () => {
     onLogout()
     navigate('/login')
+  }
+
+  const handleSaveProfile = async () => {
+    if (!editNickname.trim()) {
+      alert('昵称不能为空')
+      return
+    }
+
+    setSaving(true)
+    try {
+      const response = await api.put('/api/auth/profile', {
+        nickname: editNickname.trim()
+      })
+
+      if (response.data.success) {
+        setUser(prev => ({ 
+          ...prev, 
+          nickname: editNickname.trim()
+        }))
+        setShowEditPanel(false)
+        alert('保存成功')
+      }
+    } catch (err) {
+      console.error('保存失败:', err)
+      alert(err.response?.data?.error || '保存失败，请重试')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleUnbind = async () => {
+    if (!window.confirm('确定要解除绑定关系吗？\n\n解除后需要重新生成邀请码才能再次绑定。')) {
+      return
+    }
+
+    try {
+      const response = await api.post('/api/auth/unbind')
+
+      if (response.data.success) {
+        setCouple(null)
+        setShowManagePanel(false)
+        alert('已解除绑定关系')
+      }
+    } catch (err) {
+      console.error('解除绑定失败:', err)
+      alert(err.response?.data?.error || '解除绑定失败，请重试')
+    }
   }
 
   if (loading) {
@@ -131,20 +179,15 @@ export default function Profile({ token, onLogout }) {
             <div className="user-details">
               <h2>{user?.nickname || user?.username}</h2>
               <p className="username">@{user?.username}</p>
+              <button 
+                className="edit-btn"
+                onClick={() => setShowEditPanel(true)}
+              >
+                ✏️ 编辑资料
+              </button>
             </div>
           </div>
           
-          <div className="user-stats">
-            <div className="stat-item">
-              <span className="stat-value">📝</span>
-              <span className="stat-label">聊天记录</span>
-            </div>
-            <div className="stat-divider"></div>
-            <div className="stat-item">
-              <span className="stat-value">🐾</span>
-              <span className="stat-label">陪伴天数</span>
-            </div>
-          </div>
         </div>
 
         {/* 绑定关系 */}
@@ -152,13 +195,16 @@ export default function Profile({ token, onLogout }) {
           <div className="profile-card">
             <h3 className="card-title">绑定关系</h3>
             <div className="relation-info">
-              <div className="relation-avatar">
-                🐕
-              </div>
               <div className="relation-details">
                 <h4>{partnerInfo?.nickname || partnerInfo?.username}</h4>
-                <p>已绑定</p>
+                <p className="relation-status">✅ 已绑定</p>
               </div>
+              <button 
+                className="unbind-btn"
+                onClick={() => setShowManagePanel(true)}
+              >
+                管理
+              </button>
             </div>
           </div>
         )}
@@ -175,33 +221,6 @@ export default function Profile({ token, onLogout }) {
           </div>
         )}
 
-        {/* 设置 */}
-        <div className="profile-card">
-          <h3 className="card-title">设置</h3>
-          <div className="menu-list">
-            <button className="menu-item">
-              <span className="menu-icon">🔔</span>
-              <span>消息通知</span>
-              <span className="menu-arrow">›</span>
-            </button>
-            <button className="menu-item">
-              <span className="menu-icon">🔒</span>
-              <span>隐私设置</span>
-              <span className="menu-arrow">›</span>
-            </button>
-            <button className="menu-item">
-              <span className="menu-icon">❓</span>
-              <span>帮助与反馈</span>
-              <span className="menu-arrow">›</span>
-            </button>
-            <button className="menu-item">
-              <span className="menu-icon">ℹ️</span>
-              <span>关于</span>
-              <span className="menu-arrow">›</span>
-            </button>
-          </div>
-        </div>
-
         {/* 退出登录 */}
         <button className="logout-button" onClick={handleLogout}>
           退出登录
@@ -212,6 +231,127 @@ export default function Profile({ token, onLogout }) {
           <p>陪伴是最长情的告白 🐾</p>
         </div>
       </div>
+
+      {/* 编辑资料面板 */}
+      {showEditPanel && (
+        <>
+          <div className="panel-overlay" onClick={() => setShowEditPanel(false)}></div>
+          <div className="edit-panel">
+            <div className="panel-header">
+              <h3>编辑资料</h3>
+              <button className="panel-close" onClick={() => setShowEditPanel(false)}>✕</button>
+            </div>
+            <div className="panel-content">
+              <div className="edit-avatar-section">
+                <label className="edit-avatar-label">
+                  <div className="edit-avatar-preview">
+                    {user?.avatar ? (
+                      <img src={user.avatar} alt="头像" />
+                    ) : (
+                      '🐕'
+                    )}
+                  </div>
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    disabled={uploading || saving}
+                    style={{ display: 'none' }}
+                  />
+                  <span className="edit-avatar-tip">
+                    {uploading ? '上传中...' : '点击更换头像'}
+                  </span>
+                </label>
+              </div>
+              
+              <div className="edit-field">
+                <label>昵称</label>
+                <input
+                  type="text"
+                  className="edit-input"
+                  value={editNickname}
+                  onChange={(e) => setEditNickname(e.target.value)}
+                  placeholder="请输入昵称"
+                  disabled={saving}
+                />
+              </div>
+              
+              <div className="edit-field">
+                <label>用户名</label>
+                <div className="username-display">@{user?.username}</div>
+                <p className="field-tip">用户名用于登录，不支持修改</p>
+              </div>
+            </div>
+            <div className="panel-footer">
+              <button 
+                className="btn-cancel"
+                onClick={() => setShowEditPanel(false)}
+                disabled={saving}
+              >
+                取消
+              </button>
+              <button 
+                className="btn-save"
+                onClick={handleSaveProfile}
+                disabled={saving}
+              >
+                {saving ? '保存中...' : '保存'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* 绑定管理面板 */}
+      {showManagePanel && couple && (
+        <>
+          <div className="panel-overlay" onClick={() => setShowManagePanel(false)}></div>
+          <div className="manage-panel">
+            <div className="panel-header">
+              <h3>绑定管理</h3>
+              <button className="panel-close" onClick={() => setShowManagePanel(false)}>✕</button>
+            </div>
+            <div className="panel-content">
+              <div className="couple-info">
+                <div className="couple-avatar">
+                  🐕
+                </div>
+                <div className="couple-details">
+                  <h4>{partnerInfo?.nickname || partnerInfo?.username}</h4>
+                  <p className="couple-status">✅ 已绑定</p>
+                </div>
+              </div>
+              
+              <div className="bind-time-section">
+                <p className="bind-time-label">绑定时间</p>
+                <p className="bind-time-value">
+                  {couple.created_at ? new Date(couple.created_at).toLocaleString('zh-CN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  }) : '-'}
+                </p>
+              </div>
+            </div>
+            <div className="panel-footer">
+              <button 
+                className="btn-cancel"
+                onClick={() => setShowManagePanel(false)}
+              >
+                取消
+              </button>
+              <button 
+                className="btn-unbind"
+                onClick={handleUnbind}
+              >
+                解除绑定
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

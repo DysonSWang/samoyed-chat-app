@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import axios from 'axios'
+import api from '../utils/api'
 
 export default function Login({ onLogin }) {
   const navigate = useNavigate()
@@ -17,7 +17,7 @@ export default function Login({ onLogin }) {
     setLoading(true)
 
     try {
-      const response = await axios.post('/api/auth/login', formData)
+      const response = await api.post('/api/auth/login', formData)
       if (response.data.success) {
         onLogin(response.data.token)
         navigate('/chat')

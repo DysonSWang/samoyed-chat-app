@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react'
-import axios from 'axios'
-import VoiceRecorder from './VoiceRecorder'
+import api from '../utils/api'
 import EmojiPicker from './EmojiPicker'
 import './MessageInput.css'
 
@@ -8,7 +7,6 @@ export default function MessageInput({ token, coupleId, onSendMessage, onTyping 
   const [message, setMessage] = useState('')
   const [uploading, setUploading] = useState(false)
   const [showPanel, setShowPanel] = useState(false)
-  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const fileInputRef = useRef(null)
   const typingTimeoutRef = useRef(null)
@@ -66,11 +64,8 @@ export default function MessageInput({ token, coupleId, onSendMessage, onTyping 
       const isVideo = file.type.startsWith('video/')
       const endpoint = isVideo ? '/api/upload/video' : '/api/upload/image'
       
-      const response = await axios.post(endpoint, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
+      const response = await api.post(endpoint, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       })
 
       if (response.data.success) {
@@ -100,67 +95,22 @@ export default function MessageInput({ token, coupleId, onSendMessage, onTyping 
     setShowPanel(false)
   }
 
-  const openVoiceRecorder = () => {
-    setShowVoiceRecorder(true)
-    setShowPanel(false)
-  }
-
-  const handleRecordEnd = async (audioBlob, duration) => {
-    setUploading(true)
-    setShowVoiceRecorder(false)
-
-    try {
-      const formData = new FormData()
-      formData.append('file', audioBlob, `recording-${Date.now()}.webm`)
-      formData.append('duration', duration.toString())
-
-      const response = await axios.post('/api/upload/audio', formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
-      })
-
-      if (response.data.success) {
-        await onSendMessage({
-          content: '',
-          type: 'audio',
-          mediaUrl: response.data.url,
-          mediaType: response.data.mimeType,
-          duration: response.data.duration || duration
-        })
-      }
-    } catch (err) {
-      console.error('上传音频失败:', err)
-      const errorMsg = err.code === 'ENOTFOUND' 
-        ? '网络错误，请检查连接' 
-        : (err.response?.data?.error || '上传失败，请稍后重试')
-      alert(errorMsg)
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  const handleCancelRecording = () => {
-    setShowVoiceRecorder(false)
-  }
-
   const openEmojiPicker = () => {
     setShowEmojiPicker(true)
     setShowPanel(false)
   }
 
   const handleEmojiSelect = async (emoji) => {
-    setUploading(true)
+    setUploading(false)
     setShowEmojiPicker(false)
 
     try {
-      // 直接发送表情包消息
+      // 直接发送表情包消息（使用 emoji 字符）
       await onSendMessage({
-        content: emoji.name,
+        content: emoji.emoji,
         type: 'emoji',
-        mediaUrl: emoji.url,
-        mediaType: 'image'
+        emojiName: emoji.name,
+        mediaType: 'emoji'
       })
     } catch (err) {
       console.error('发送表情包失败:', err)
@@ -176,13 +126,6 @@ export default function MessageInput({ token, coupleId, onSendMessage, onTyping 
 
   return (
     <div className="message-input-container">
-      {showVoiceRecorder && (
-        <VoiceRecorder 
-          onRecordEnd={handleRecordEnd}
-          onCancel={handleCancelRecording}
-        />
-      )}
-
       {showEmojiPicker && (
         <EmojiPicker 
           onEmojiSelect={handleEmojiSelect}
@@ -216,10 +159,6 @@ export default function MessageInput({ token, coupleId, onSendMessage, onTyping 
             <button className="attach-option" onClick={openAttachmentPicker}>
               <span className="emoji">📎</span>
               <span>附件</span>
-            </button>
-            <button className="attach-option" onClick={openVoiceRecorder}>
-              <span className="emoji">🎤</span>
-              <span>语音</span>
             </button>
           </div>
         )}

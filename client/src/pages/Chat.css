@@ -60,27 +60,20 @@
   gap: 4px;
 }
 
-.emoji-message img {
-  width: 150px;
-  height: 150px;
-  object-fit: cover;
-  border-radius: 12px;
-  background: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+.emoji-character {
+  font-size: 64px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 80px;
+  min-height: 80px;
 }
 
 .emoji-caption {
   font-size: 12px;
   color: #718096;
   text-align: center;
-}
-
-.sent .emoji-message img {
-  border: 2px solid #FFB6C1;
-}
-
-.received .emoji-message img {
-  border: 2px solid #E0E0E0;
 }
 
 /* 菜单遮罩 */
@@ -389,4 +382,24 @@
 
 .message-list::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.3);
+}
+
+/* 撤回消息样式 */
+.recalled-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  font-style: italic;
+}
+
+.recalled-icon {
+  font-size: 14px;
+}
+
+.recalled-text {
+  user-select: none;
 }
