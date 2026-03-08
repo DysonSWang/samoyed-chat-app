@@ -86,38 +86,6 @@ jobs:
           org.gradle.jvmargs=-Xmx2048m
           EOF
 
-      - name: Copy Samoyed App Icons
-        working-directory: ./client
-        run: |
-          # 下载萨摩耶图标并生成各尺寸
-          curl -sL "https://images.pexels.com/photos/258957/pexels-photo-258957.jpeg?auto=compress&cs=tinysrgb&w=512&h=512" -o /tmp/samoyed.png
-          
-          python3 << 'PYTHON'
-          from PIL import Image
-          import os
-          
-          img = Image.open('/tmp/samoyed.png')
-          width, height = img.size
-          min_side = min(width, height)
-          left = (width - min_side) // 2
-          top = (height - min_side) // 2
-          img_cropped = img.crop((left, top, left + min_side, top + min_side))
-          img_square = img_cropped.resize((512, 512), Image.Resampling.LANCZOS)
-          
-          sizes = {
-              'mipmap-mdpi': 48,
-              'mipmap-hdpi': 72,
-              'mipmap-xhdpi': 96,
-              'mipmap-xxhdpi': 144,
-              'mipmap-xxxhdpi': 192
-          }
-          
-          for folder, size in sizes.items():
-              img_resized = img_square.resize((size, size), Image.Resampling.LANCZOS)
-              img_resized.save(f'android/app/src/main/res/{folder}/ic_launcher.png')
-              img_resized.save(f'android/app/src/main/res/{folder}/ic_launcher_round.png')
-          PYTHON
-
       - name: Build Debug APK
         working-directory: ./client/android
         run: |
@@ -129,11 +97,4 @@ jobs:
         with:
           name: samoyed-chat-app-debug
           path: client/android/app/build/outputs/apk/debug/*.apk
-          retention-days: 30
-
-      - name: Upload App Icon
-        uses: actions/upload-artifact@v4
-        with:
-          name: samoyed-app-icon
-          path: /tmp/samoyed.png
           retention-days: 30
