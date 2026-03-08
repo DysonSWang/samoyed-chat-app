@@ -49,14 +49,21 @@ app.get('/api/health', (req, res) => {
 
 // Socket.IO 连接处理
 const onlineUsers = new Map(); // userId -> socketId
+const userSockets = new Map(); // socketId -> { userId, coupleId }
 
 io.on('connection', (socket) => {
   console.log('🐕 用户连接:', socket.id);
+
+  // 心跳检测
+  socket.on('ping', () => {
+    socket.emit('pong')
+  })
 
   // 用户加入聊天室
   socket.on('join', (data) => {
     const { userId, coupleId } = data;
     onlineUsers.set(userId, socket.id);
+    userSockets.set(socket.id, { userId, coupleId });
     socket.join(`couple_${coupleId}`);
     console.log(`用户 ${userId} 加入聊天室 couple_${coupleId}`);
     
@@ -64,11 +71,54 @@ io.on('connection', (socket) => {
     socket.to(`couple_${coupleId}`).emit('user_online', { userId });
   });
 
-  // 实时消息 - 只发送给其他人，不发送给发送者
-  socket.on('send_message', (data) => {
+  // 实时消息 - 带确认
+  socket.on('send_message', (data, callback) => {
     const { coupleId, message } = data;
     socket.to(`couple_${coupleId}`).emit('new_message', message);
-    console.log(`新消息广播到 couple_${coupleId}, 发送者：${message.sender_id}`);
+    console.log(`📤 新消息广播到 couple_${coupleId}`);
+    
+    // 发送确认
+    if (callback) callback({ success: true, messageId: message.id })
+  });
+
+  // 悄悄话（阅后即焚）
+  socket.on('secret_message', (data, callback) => {
+    const { coupleId, message } = data;
+    // 发送给对方
+    socket.to(`couple_${coupleId}`).emit('new_message', message);
+    console.log(`🔥 悄悄话发送到 couple_${coupleId}`);
+    
+    // 5 秒后通知删除
+    setTimeout(() => {
+      io.to(`couple_${coupleId}`).emit('message_deleted', { 
+        messageId: message.id,
+        reason: 'secret'
+      });
+      console.log(`🗑️ 悄悄话已删除：${message.id}`);
+    }, 5000);
+    
+    if (callback) callback({ success: true })
+  });
+
+  // 戳一戳
+  socket.on('poke', (data) => {
+    const { coupleId, userId } = data;
+    socket.to(`couple_${coupleId}`).emit('poke', { 
+      userId, 
+      timestamp: Date.now() 
+    });
+    console.log(`👆 ${userId} 戳了戳对方`);
+  });
+
+  // 引用回复
+  socket.on('reply_message', (data, callback) => {
+    const { coupleId, message, replyToId } = data;
+    socket.to(`couple_${coupleId}`).emit('new_message', { 
+      ...message, 
+      replyToId 
+    });
+    
+    if (callback) callback({ success: true })
   });
 
   // 输入状态
@@ -83,22 +133,48 @@ io.on('connection', (socket) => {
     socket.to(`couple_${coupleId}`).emit('user_stop_typing', { userId });
   });
 
+  // 离线消息同步请求
+  socket.on('offline_sync', async (data) => {
+    const { userId, coupleId } = data;
+    console.log(`📥 用户 ${userId} 请求同步离线消息`);
+    
+    try {
+      const db = require('./models/database').getDatabase();
+      const messages = db.prepare(`
+        SELECT m.*, u.username as sender_username, u.nickname as sender_nickname, u.avatar as sender_avatar
+        FROM messages m
+        LEFT JOIN users u ON m.sender_id = u.id
+        WHERE m.couple_id = ? AND m.is_deleted = 0 AND m.is_recalled = 0
+        ORDER BY m.created_at DESC
+        LIMIT 50
+      `).all(coupleId).reverse();
+      
+      socket.emit('offline_messages', { messages });
+      console.log(`✅ 同步了 ${messages.length} 条离线消息`);
+    } catch (err) {
+      console.error('同步离线消息失败:', err);
+    }
+  });
+
   // 断开连接
   socket.on('disconnect', () => {
     let disconnectedUserId = null;
-    for (const [userId, socketId] of onlineUsers.entries()) {
-      if (socketId === socket.id) {
-        disconnectedUserId = userId;
-        onlineUsers.delete(userId);
-        break;
+    const userInfo = userSockets.get(socket.id);
+    
+    if (userInfo) {
+      disconnectedUserId = userInfo.userId;
+      onlineUsers.delete(disconnectedUserId);
+      userSockets.delete(socket.id);
+      
+      // 通知对方
+      if (userInfo.coupleId) {
+        socket.to(`couple_${userInfo.coupleId}`).emit('user_offline', { 
+          userId: disconnectedUserId 
+        });
       }
     }
-    console.log('🐕 用户断开:', socket.id, disconnectedUserId);
     
-    if (disconnectedUserId) {
-      // 通知对方
-      io.emit('user_offline', { userId: disconnectedUserId });
-    }
+    console.log('🐕 用户断开:', socket.id, disconnectedUserId);
   });
 });
 

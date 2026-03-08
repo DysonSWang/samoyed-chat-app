@@ -5,6 +5,57 @@
   position: relative;
 }
 
+/* 引用回复预览 */
+.reply-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border-left: 3px solid #ff6b6b;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.reply-content {
+  flex: 1;
+  overflow: hidden;
+}
+
+.reply-label {
+  color: #ff6b6b;
+  font-weight: 500;
+  margin-right: 8px;
+}
+
+.reply-text {
+  color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reply-cancel {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: #999;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.reply-cancel:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
 .message-input-wrapper {
   display: flex;
   align-items: flex-end;
@@ -121,6 +172,42 @@
 
 .attach-option .emoji {
   font-size: 28px;
+}
+
+/* 悄悄话开关 */
+.secret-toggle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: #f5f5f5;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.secret-toggle:hover {
+  background: #ffe5e5;
+  transform: scale(1.1);
+}
+
+.secret-toggle.active {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
+  animation: secretPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes secretPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(255, 107, 107, 0);
+  }
 }
 
 /* 输入框 */

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../utils/api'
+import SamoyedIcon from '../components/SamoyedIcon'
 
 export default function Pair() {
   const navigate = useNavigate()
@@ -87,7 +88,7 @@ export default function Pair() {
             className="btn btn-primary"
             onClick={() => navigate('/chat')}
           >
-            进入聊天室 🐕
+            进入聊天室 <SamoyedIcon size="16" style={{display: 'inline', verticalAlign: 'middle'}} />
           </button>
         </div>
       </div>
@@ -101,7 +102,9 @@ export default function Pair() {
       
       <div className="pair-container animate-fade-in">
         <div className="pair-header">
-          <div className="logo">🐕</div>
+          <div className="logo">
+            <SamoyedIcon size="64" />
+          </div>
           <h1>绑定关系</h1>
           <p>邀请你的家人一起加入</p>
         </div>

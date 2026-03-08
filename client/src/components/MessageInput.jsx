@@ -1,15 +1,20 @@
 import { useState, useRef } from 'react'
 import api from '../utils/api'
 import EmojiPicker from './EmojiPicker'
+import { smartCompress } from '../utils/imageCompressor'
 import './MessageInput.css'
 
-export default function MessageInput({ token, coupleId, onSendMessage, onTyping }) {
+export default function MessageInput({ token, coupleId, onSendMessage, onTyping, replyTo: propReplyTo, onCancelReply }) {
   const [message, setMessage] = useState('')
   const [uploading, setUploading] = useState(false)
   const [showPanel, setShowPanel] = useState(false)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [isSecret, setIsSecret] = useState(false)
   const fileInputRef = useRef(null)
   const typingTimeoutRef = useRef(null)
+  
+  // 使用 props 中的 replyTo
+  const replyTo = propReplyTo
 
   const handleTyping = () => {
     onTyping?.(true)
@@ -30,10 +35,14 @@ export default function MessageInput({ token, coupleId, onSendMessage, onTyping 
     
     await onSendMessage({
       content: message.trim(),
-      type: 'text'
+      type: 'text',
+      replyTo: replyTo,
+      isSecret: isSecret
     })
     
     setMessage('')
+    setReplyTo(null)
+    setIsSecret(false)
     onTyping?.(false)
     setShowPanel(false)
   }
@@ -58,10 +67,25 @@ export default function MessageInput({ token, coupleId, onSendMessage, onTyping 
     setShowPanel(false)
 
     try {
-      const formData = new FormData()
-      formData.append('file', file)
+      let uploadFile = file
+      let compressInfo = null
 
+      // 图片压缩（视频不压缩）
       const isVideo = file.type.startsWith('video/')
+      if (!isVideo && file.type.startsWith('image/')) {
+        // 显示压缩提示
+        const { blob, compressed, rate } = await smartCompress(file)
+        uploadFile = blob
+        compressInfo = { compressed, rate }
+        
+        if (compressed) {
+          console.log('📦 图片压缩:', rate)
+        }
+      }
+
+      const formData = new FormData()
+      formData.append('file', uploadFile)
+
       const endpoint = isVideo ? '/api/upload/video' : '/api/upload/image'
       
       const response = await api.post(endpoint, formData, {
@@ -75,6 +99,11 @@ export default function MessageInput({ token, coupleId, onSendMessage, onTyping 
           mediaUrl: response.data.url,
           mediaType: response.data.mimeType
         })
+        
+        // 显示压缩结果提示
+        if (compressInfo?.compressed) {
+          console.log('✅ 上传成功，压缩率:', compressInfo.rate)
+        }
       }
     } catch (err) {
       console.error('上传失败:', err)
@@ -105,7 +134,6 @@ export default function MessageInput({ token, coupleId, onSendMessage, onTyping 
     setShowEmojiPicker(false)
 
     try {
-      // 直接发送表情包消息（使用 emoji 字符）
       await onSendMessage({
         content: emoji.emoji,
         type: 'emoji',
@@ -124,6 +152,10 @@ export default function MessageInput({ token, coupleId, onSendMessage, onTyping 
     setShowEmojiPicker(false)
   }
 
+  const cancelReply = () => {
+    onCancelReply?.()
+  }
+
   return (
     <div className="message-input-container">
       {showEmojiPicker && (
@@ -131,6 +163,17 @@ export default function MessageInput({ token, coupleId, onSendMessage, onTyping 
           onEmojiSelect={handleEmojiSelect}
           onClose={handleCloseEmoji}
         />
+      )}
+
+      {/* 引用回复 */}
+      {replyTo && (
+        <div className="reply-preview">
+          <div className="reply-content">
+            <span className="reply-label">回复 @{replyTo.sender_nickname || '对方'}:</span>
+            <span className="reply-text">{replyTo.content?.substring(0, 50) || '[图片/表情]'}</span>
+          </div>
+          <button className="reply-cancel" onClick={cancelReply}>✕</button>
+        </div>
       )}
 
       <div className="message-input-wrapper">
@@ -171,6 +214,15 @@ export default function MessageInput({ token, coupleId, onSendMessage, onTyping 
           style={{ display: 'none' }}
         />
 
+        {/* 悄悄话开关 */}
+        <button
+          className={`secret-toggle ${isSecret ? 'active' : ''}`}
+          onClick={() => setIsSecret(!isSecret)}
+          title="悄悄话（阅后即焚）"
+        >
+          🔥
+        </button>
+
         <div className="input-box">
           <textarea
             className="message-input"
@@ -180,7 +232,7 @@ export default function MessageInput({ token, coupleId, onSendMessage, onTyping 
               handleTyping()
             }}
             onKeyPress={handleKeyPress}
-            placeholder="发消息..."
+            placeholder={isSecret ? "发悄悄话..." : "发消息..."}
             rows="1"
             disabled={uploading}
           />

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import SamoyedIcon from '../components/SamoyedIcon'
 import { useNavigate } from 'react-router-dom'
 import api from '../utils/api'
 import './Profile.css'
@@ -135,7 +136,9 @@ export default function Profile({ token, onLogout }) {
     return (
       <div className="page profile-page">
         <div className="loading-container">
-          <div className="loading-emoji">🐕</div>
+          <div className="loading-emoji">
+            <SamoyedIcon size="64" />
+          </div>
           <p>加载中...</p>
         </div>
       </div>
@@ -163,7 +166,7 @@ export default function Profile({ token, onLogout }) {
                 {user?.avatar ? (
                   <img src={user.avatar} alt="头像" />
                 ) : (
-                  '🐕'
+                  <SamoyedIcon size="48" />
                 )}
               </div>
               <input 
@@ -248,7 +251,7 @@ export default function Profile({ token, onLogout }) {
                     {user?.avatar ? (
                       <img src={user.avatar} alt="头像" />
                     ) : (
-                      '🐕'
+                      <SamoyedIcon size="64" />
                     )}
                   </div>
                   <input 
@@ -314,7 +317,7 @@ export default function Profile({ token, onLogout }) {
             <div className="panel-content">
               <div className="couple-info">
                 <div className="couple-avatar">
-                  🐕
+                  <SamoyedIcon size="48" />
                 </div>
                 <div className="couple-details">
                   <h4>{partnerInfo?.nickname || partnerInfo?.username}</h4>
@@ -325,13 +328,21 @@ export default function Profile({ token, onLogout }) {
               <div className="bind-time-section">
                 <p className="bind-time-label">绑定时间</p>
                 <p className="bind-time-value">
-                  {couple.created_at ? new Date(couple.created_at).toLocaleString('zh-CN', {
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  }) : '-'}
+                  {couple.created_at ? (() => {
+                    // 确保使用东八区（北京时间）显示
+                    const date = new Date(couple.created_at)
+                    // 转换为东八区时间戳
+                    const utcTime = date.getTime()
+                    const beijingTime = new Date(utcTime + 8 * 60 * 60 * 1000)
+                    return beijingTime.toLocaleString('zh-CN', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: false
+                    })
+                  })() : '-'}
                 </p>
               </div>
             </div>

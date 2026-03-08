@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import ImagePreview from './ImagePreview'
+import SamoyedIcon from './SamoyedIcon'
 
-export default function MessageList({ messages, currentUserId, partnerTyping, onDeleteMessages, onRecallMessage }) {
+export default function MessageList({ messages, currentUserId, partnerTyping, onDeleteMessages, onRecallMessage, onReply }) {
   const [previewImage, setPreviewImage] = useState(null)
   const [selectMode, setSelectMode] = useState(false)
   const [selectedMessages, setSelectedMessages] = useState([])
@@ -100,6 +101,17 @@ export default function MessageList({ messages, currentUserId, partnerTyping, on
     }
   }
 
+  const handleReply = () => {
+    if (menuMessageId) {
+      const message = messages.find(m => m.id === menuMessageId)
+      if (message) {
+        onReply?.(message)
+      }
+      setShowMenu(false)
+      setMenuMessageId(null)
+    }
+  }
+
   const toggleSelectMode = () => {
     setSelectMode(!selectMode)
     setSelectedMessages([])
@@ -167,6 +179,33 @@ export default function MessageList({ messages, currentUserId, partnerTyping, on
       )
     }
     
+    // 引用消息
+    if (message.reply_to_id || message.replyToId) {
+      const replyContent = message.reply_content || '[原消息已删除]'
+      const replySender = message.reply_sender_id === message.sender_id ? '自己' : '对方'
+      
+      return (
+        <div className="message-with-reply">
+          <div className="reply-preview">
+            <span className="reply-label">@{replySender}:</span>
+            <span className="reply-text">{replyContent?.substring(0, 50)}</span>
+          </div>
+          <p className="message-content">{message.content}</p>
+        </div>
+      )
+    }
+    
+    // 悄悄话
+    if (message.is_secret) {
+      return (
+        <div className="secret-message">
+          <span className="secret-icon">🔥</span>
+          <p className="message-content">{message.content}</p>
+          <span className="secret-tip">阅后即焚</span>
+        </div>
+      )
+    }
+    
     return <p className="message-content">{message.content}</p>
   }
 
@@ -189,7 +228,9 @@ export default function MessageList({ messages, currentUserId, partnerTyping, on
 
         {messages.length === 0 ? (
           <div className="empty-chat">
-            <div className="empty-chat-emoji">🐕</div>
+            <div className="empty-chat-emoji">
+              <SamoyedIcon size="64" />
+            </div>
             <p>还没有消息</p>
             <p>发送第一条消息，开始记录吧！</p>
           </div>
@@ -240,6 +281,9 @@ export default function MessageList({ messages, currentUserId, partnerTyping, on
             className="message-menu"
             style={{ left: menuPosition.x, top: menuPosition.y }}
           >
+            <button onClick={handleReply}>
+              <span>↗️</span> 引用
+            </button>
             <button onClick={toggleSelectMode}>
               <span>☑️</span> 多选
             </button>

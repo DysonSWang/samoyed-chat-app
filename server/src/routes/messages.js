@@ -72,22 +72,47 @@ router.post('/', authMiddleware, (req, res) => {
       return res.status(400).json({ error: '您还未配对，无法发送消息' });
     }
 
-    const { content, type = 'text', mediaUrl, mediaType, duration } = req.body;
+    const { content, type = 'text', mediaUrl, mediaType, duration, replyTo, isSecret } = req.body;
 
     if (!content && !mediaUrl) {
       return res.status(400).json({ error: '消息内容不能为空' });
     }
 
+    // 获取引用消息（如果有）
+    let replyToId = null;
+    if (replyTo) {
+      const replyMsg = db.prepare('SELECT id FROM messages WHERE id = ?').get(replyTo.id || replyTo);
+      if (replyMsg) {
+        replyToId = replyMsg.id;
+      }
+    }
+
+    // 悄悄话设置过期时间（5 秒后）
+    const expiresAt = isSecret ? "datetime('now', 'localtime', '+5 seconds')" : null;
+
     // 服务器时区已是北京时间 (Asia/Shanghai)，直接使用
     const result = db.prepare(`
-      INSERT INTO messages (couple_id, sender_id, content, type, media_url, media_type, duration, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))
-    `).run(user.couple_id, req.userId, content || '', type, mediaUrl || null, mediaType || null, duration || null);
+      INSERT INTO messages (couple_id, sender_id, content, type, media_url, media_type, duration, reply_to_id, is_secret, expires_at, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ${expiresAt ? '?' : 'NULL'}, datetime('now', 'localtime'))
+    `).run(
+      user.couple_id, 
+      req.userId, 
+      content || '', 
+      type, 
+      mediaUrl || null, 
+      mediaType || null, 
+      duration || null, 
+      replyToId,
+      isSecret ? 1 : 0,
+      ...(expiresAt ? [1] : [])
+    );
 
     const message = db.prepare(`
-      SELECT m.*, u.username as sender_username, u.nickname as sender_nickname, u.avatar as sender_avatar
+      SELECT m.*, u.username as sender_username, u.nickname as sender_nickname, u.avatar as sender_avatar,
+             reply.content as reply_content, reply.sender_id as reply_sender_id
       FROM messages m
       LEFT JOIN users u ON m.sender_id = u.id
+      LEFT JOIN messages reply ON m.reply_to_id = reply.id
       WHERE m.id = ?
     `).get(result.lastInsertRowid);
 

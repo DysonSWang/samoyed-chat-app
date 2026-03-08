@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import api from '../utils/api'
+import SamoyedIcon from '../components/SamoyedIcon'
 
 export default function Login({ onLogin }) {
   const navigate = useNavigate()
@@ -36,7 +37,9 @@ export default function Login({ onLogin }) {
       
       <div className="auth-container animate-fade-in">
         <div className="auth-header">
-          <div className="logo">🐕</div>
+          <div className="logo">
+            <SamoyedIcon size="64" />
+          </div>
           <h1>萨摩耶之家</h1>
           <p>欢迎回来，继续你和毛孩子的对话</p>
         </div>

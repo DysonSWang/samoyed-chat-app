@@ -1,0 +1,24 @@
+[Unit]
+Description=Samoyed Chat - 情侣聊天应用
+Documentation=https://github.com/your-repo/samoyed-chat
+After=network.target
+
+[Service]
+Type=forking
+User=root
+WorkingDirectory=/root/.openclaw/workspace/samoyed-chat
+ExecStart=/root/.openclaw/workspace/samoyed-chat/start-daemon.sh start
+ExecStop=/root/.openclaw/workspace/samoyed-chat/start-daemon.sh stop
+ExecReload=/root/.openclaw/workspace/samoyed-chat/start-daemon.sh restart
+PIDFile=/root/.openclaw/workspace/samoyed-chat/.pids/backend.pid
+Restart=always
+RestartSec=10
+StandardOutput=append:/root/.openclaw/workspace/samoyed-chat/.logs/systemd.log
+StandardError=append:/root/.openclaw/workspace/samoyed-chat/.logs/systemd-error.log
+
+# 环境变量
+Environment="NODE_ENV=production"
+Environment="PATH=/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin"
+
+[Install]
+WantedBy=multi-user.target

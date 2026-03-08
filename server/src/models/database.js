@@ -62,9 +62,14 @@ function initDatabase() {
           duration INTEGER,
           is_deleted INTEGER DEFAULT 0,
           is_recalled INTEGER DEFAULT 0,
+          is_secret INTEGER DEFAULT 0,
+          reply_to_id INTEGER,
+          poke_count INTEGER DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          expires_at DATETIME,
           FOREIGN KEY (couple_id) REFERENCES couples(id),
-          FOREIGN KEY (sender_id) REFERENCES users(id)
+          FOREIGN KEY (sender_id) REFERENCES users(id),
+          FOREIGN KEY (reply_to_id) REFERENCES messages(id)
         )
       `);
 

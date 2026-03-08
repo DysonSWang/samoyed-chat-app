@@ -5,6 +5,7 @@ import io from 'socket.io-client'
 import MessageInput from '../components/MessageInput'
 import MessageList from '../components/MessageList'
 import ChatHeader from '../components/ChatHeader'
+import SamoyedIcon from '../components/SamoyedIcon'
 import './Chat.css'
 
 let socket = null
@@ -18,25 +19,101 @@ export default function Chat({ token }) {
   const [partnerOnline, setPartnerOnline] = useState(false)
   const [partnerTyping, setPartnerTyping] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [showPokeAnimation, setShowPokeAnimation] = useState(false)
+  const [lastPokeTime, setLastPokeTime] = useState(0)
+  const [replyTo, setReplyTo] = useState(null)
 
   const socketInitialized = useRef(false)
+  const typingTimeoutRef = useRef(null)
+  const reconnectAttempts = useRef(0)
+  const maxReconnectAttempts = 10
 
   useEffect(() => {
-    // 初始化 Socket 连接
     if (!socketInitialized.current) {
-      // 使用相对路径，通过 Vite 代理连接到后端
       const serverUrl = window.location.origin
       
-      console.log('连接 Socket 服务器:', serverUrl)
+      console.log('🔌 连接 Socket 服务器:', serverUrl)
       
       socket = io(serverUrl, {
-        reconnection: true,
-        reconnectionAttempts: 10,
-        reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000,
+        reconnection: false,
         timeout: 20000,
         transports: ['websocket', 'polling'],
         path: '/socket.io'
+      })
+      
+      socket.on('connect', () => {
+        console.log('✅ Socket 连接成功')
+        reconnectAttempts.current = 0
+        setOnline(true)
+        
+        if (user && couple) {
+          socket.emit('join', { userId: user.id, coupleId: couple.id })
+        }
+      })
+      
+      socket.on('disconnect', (reason) => {
+        console.log('❌ Socket 断开:', reason)
+        setOnline(false)
+        if (reason !== 'io client disconnect') {
+          scheduleReconnect()
+        }
+      })
+      
+      socket.on('connect_error', (error) => {
+        console.error('Socket 连接错误:', error)
+        scheduleReconnect()
+      })
+      
+      socket.on('new_message', (message) => {
+        console.log('📥 收到新消息:', message)
+        setMessages(prev => [...prev, message])
+      })
+      
+      socket.on('user_online', ({ userId }) => {
+        console.log('🟢 对方在线')
+        setPartnerOnline(true)
+      })
+      
+      socket.on('user_offline', ({ userId }) => {
+        console.log('⚫ 对方离线')
+        setPartnerOnline(false)
+      })
+      
+      socket.on('user_typing', ({ userId }) => {
+        setPartnerTyping(true)
+        if (typingTimeoutRef.current) {
+          clearTimeout(typingTimeoutRef.current)
+        }
+        typingTimeoutRef.current = setTimeout(() => {
+          setPartnerTyping(false)
+        }, 3000)
+      })
+      
+      socket.on('user_stop_typing', () => {
+        setPartnerTyping(false)
+      })
+      
+      socket.on('poke', ({ userId, timestamp }) => {
+        console.log('👆 被戳了一下')
+        const now = Date.now()
+        if (now - lastPokeTime > 1000) {
+          setShowPokeAnimation(true)
+          setLastPokeTime(now)
+          setTimeout(() => setShowPokeAnimation(false), 2000)
+          if (navigator.vibrate) {
+            navigator.vibrate(200)
+          }
+        }
+      })
+      
+      socket.on('message_deleted', ({ messageId, reason }) => {
+        console.log('🗑️ 消息被删除:', messageId, reason)
+        setMessages(prev => prev.filter(m => m.id !== messageId))
+      })
+      
+      socket.on('offline_messages', ({ messages }) => {
+        console.log('📥 同步离线消息:', messages.length, '条')
+        setMessages(messages)
       })
       
       socketInitialized.current = true
@@ -45,34 +122,58 @@ export default function Chat({ token }) {
     initChat()
 
     return () => {
-      console.log('Chat component unmounted')
+      console.log('👋 Chat component unmounted')
+      if (socket) {
+        socket.off('connect')
+        socket.off('disconnect')
+        socket.off('new_message')
+        socket.off('user_online')
+        socket.off('user_offline')
+        socket.off('user_typing')
+        socket.off('user_stop_typing')
+        socket.off('poke')
+        socket.off('message_deleted')
+        socket.off('offline_messages')
+      }
     }
   }, [])
 
+  const scheduleReconnect = () => {
+    if (reconnectAttempts.current >= maxReconnectAttempts) {
+      console.error('❌ 重连次数已达上限')
+      return
+    }
+    
+    const delay = 1000 * Math.pow(2, reconnectAttempts.current)
+    reconnectAttempts.current++
+    
+    console.log(`🔄 ${delay}ms 后尝试重连 (${reconnectAttempts.current}/${maxReconnectAttempts})`)
+    
+    setTimeout(() => {
+      if (socket) {
+        socket.connect()
+      }
+    }, delay)
+  }
+
   const initChat = async () => {
     try {
-      console.log('开始初始化聊天，API base:', api.defaults.baseURL || '相对路径')
+      console.log('开始初始化聊天')
       const userRes = await api.get('/api/auth/me')
-      console.log('用户信息:', userRes.data)
       
       if (userRes.data.success) {
         setUser(userRes.data.user)
         
         const coupleRes = await api.get('/api/auth/couple')
-        console.log('情侣信息:', coupleRes.data)
         
         if (coupleRes.data.success && coupleRes.data.couple) {
           setCouple(coupleRes.data.couple)
           await loadMessages()
           
-          socket.emit('join', {
-            userId: userRes.data.user.id,
-            coupleId: coupleRes.data.couple.id
-          })
-          
-          setOnline(true)
+          if (socket && !socket.connected) {
+            socket.connect()
+          }
         } else {
-          // 未绑定情侣，跳转到配对页面
           console.log('未绑定情侣，跳转到配对页面')
           navigate('/pair', { replace: true })
           return
@@ -80,18 +181,7 @@ export default function Chat({ token }) {
       }
     } catch (err) {
       console.error('初始化聊天失败:', err)
-      console.error('错误详情:', {
-        message: err.message,
-        code: err.code,
-        status: err.response?.status,
-        data: err.response?.data
-      })
       if (err.response?.status === 401) {
-        localStorage.removeItem('token')
-        navigate('/login', { replace: true })
-      } else if (err.code === 'ERR_NETWORK' || err.code === 'ECONNREFUSED') {
-        // 网络错误，清除 token 并跳转到登录页
-        console.error('网络错误，无法连接后端 API')
         localStorage.removeItem('token')
         navigate('/login', { replace: true })
       }
@@ -102,92 +192,44 @@ export default function Chat({ token }) {
 
   const loadMessages = async () => {
     try {
-      const response = await api.get('/api/messages')
-      
+      const response = await api.get('/api/messages?limit=50')
       if (response.data.success) {
-        setMessages(response.data.messages)
+        setMessages(response.data.messages || [])
       }
     } catch (err) {
       console.error('加载消息失败:', err)
     }
   }
 
-  useEffect(() => {
-    if (!socket) return
-
-    const handleNewMessage = (message) => {
-      console.log('收到新消息:', message)
-      setMessages(prev => {
-        const exists = prev.find(m => m.id === message.id)
-        if (exists) {
-          console.log('消息已存在，跳过')
-          return prev
-        }
-        return [...prev, message]
-      })
-    }
-
-    socket.on('new_message', handleNewMessage)
-
-    socket.on('user_online', () => {
-      console.log('对方上线')
-      setPartnerOnline(true)
-    })
-
-    socket.on('user_offline', () => {
-      console.log('对方下线')
-      setPartnerOnline(false)
-    })
-
-    socket.on('user_typing', () => {
-      setPartnerTyping(true)
-    })
-
-    socket.on('user_stop_typing', () => {
-      setPartnerTyping(false)
-    })
-
-    socket.on('connect', () => {
-      console.log('Socket 已连接:', socket.id)
-    })
-
-    socket.on('disconnect', () => {
-      console.log('Socket 已断开')
-    })
-
-    socket.on('connect_error', (err) => {
-      console.error('Socket 连接错误:', err)
-    })
-
-    return () => {
-      socket.off('new_message', handleNewMessage)
-      socket.off('user_online')
-      socket.off('user_offline')
-      socket.off('user_typing')
-      socket.off('user_stop_typing')
-      socket.off('connect')
-      socket.off('disconnect')
-      socket.off('connect_error')
-    }
-  }, [socket])
-
   const sendMessage = async (messageData) => {
     try {
+      console.log('📤 发送消息:', messageData)
+      
       const response = await api.post('/api/messages', messageData)
       
       if (response.data.success) {
-        // 先添加到本地列表
-        setMessages(prev => [...prev, response.data.message])
+        const message = response.data.message
         
-        // 通过 socket 发送给对方
+        setMessages(prev => [...prev, message])
+        
         if (socket && socket.connected) {
-          socket.emit('send_message', {
-            coupleId: couple.id,
-            message: response.data.message
-          })
-          console.log('消息已发送到 socket')
-        } else {
-          console.warn('Socket 未连接，无法实时推送')
+          if (messageData.isSecret) {
+            socket.emit('secret_message', {
+              coupleId: couple.id,
+              message: message
+            })
+          } else if (messageData.replyTo) {
+            socket.emit('reply_message', {
+              coupleId: couple.id,
+              message: message,
+              replyToId: messageData.replyTo.id || messageData.replyTo
+            })
+          } else {
+            socket.emit('send_message', {
+              coupleId: couple.id,
+              message: message
+            })
+          }
         }
       }
     } catch (err) {
@@ -197,14 +239,25 @@ export default function Chat({ token }) {
   }
 
   const sendTypingStatus = (isTyping) => {
-    // 未绑定时不发送输入状态
     if (!couple || !user) return
     
     if (isTyping) {
-      socket.emit('typing', { coupleId: couple.id, userId: user.id })
+      socket?.emit('typing', { coupleId: couple.id, userId: user.id })
     } else {
-      socket.emit('stop_typing', { coupleId: couple.id, userId: user.id })
+      socket?.emit('stop_typing', { coupleId: couple.id, userId: user.id })
     }
+  }
+
+  const sendPoke = () => {
+    if (!couple || !user) return
+    
+    const now = Date.now()
+    if (now - lastPokeTime < 5000) {
+      return
+    }
+    
+    socket?.emit('poke', { coupleId: couple.id, userId: user.id })
+    setLastPokeTime(now)
   }
 
   const handleDeleteMessages = async (messageIds) => {
@@ -214,47 +267,37 @@ export default function Chat({ token }) {
       }
       setMessages(prev => prev.filter(m => !messageIds.includes(m.id)))
     } catch (err) {
-      console.error('删除失败:', err)
-      alert('删除失败，请重试')
+      console.error('删除消息失败:', err)
     }
   }
 
   const handleRecallMessage = async (messageId) => {
     try {
-      const response = await api.post(`/api/messages/${messageId}/recall`)
-      
-      if (response.data.success) {
-        // 更新本地消息状态
-        setMessages(prev => prev.map(m => 
-          m.id === messageId 
-            ? { ...m, is_recalled: 1, content: '', media_url: null, type: 'text' }
-            : m
-        ))
-      }
+      await api.post(`/api/messages/${messageId}/recall`)
+      setMessages(prev => prev.map(m => 
+        m.id === messageId ? { ...m, is_recalled: 1, content: '', media_url: null } : m
+      ))
     } catch (err) {
-      console.error('撤回失败:', err)
-      alert(err.response?.data?.error || '撤回失败，请重试')
+      console.error('撤回消息失败:', err)
     }
+  }
+
+  const handleReply = (message) => {
+    setReplyTo(message)
+  }
+
+  const cancelReply = () => {
+    setReplyTo(null)
   }
 
   if (loading) {
     return (
       <div className="page chat-page">
         <div className="loading-container">
-          <div className="loading-emoji">🐕</div>
-          <p>正在连接...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // 未绑定时不渲染聊天界面（会立即跳转）
-  if (!couple || !user) {
-    return (
-      <div className="page chat-page">
-        <div className="loading-container">
-          <div className="loading-emoji">🐕</div>
-          <p>正在跳转...</p>
+          <div className="loading-emoji">
+            <SamoyedIcon size="64" />
+          </div>
+          <p>加载中...</p>
         </div>
       </div>
     )
@@ -264,8 +307,17 @@ export default function Chat({ token }) {
     <div className="page chat-page">
       <ChatHeader 
         couple={couple} 
+        user={user}
         partnerOnline={partnerOnline}
+        onPoke={sendPoke}
       />
+      
+      {showPokeAnimation && (
+        <div className="poke-animation">
+          <div className="poke-emoji">👆</div>
+          <div className="poke-text">对方戳了你一下</div>
+        </div>
+      )}
       
       <MessageList 
         messages={messages}
@@ -273,6 +325,7 @@ export default function Chat({ token }) {
         partnerTyping={partnerTyping}
         onDeleteMessages={handleDeleteMessages}
         onRecallMessage={handleRecallMessage}
+        onReply={handleReply}
       />
       
       <MessageInput 
@@ -280,6 +333,8 @@ export default function Chat({ token }) {
         coupleId={couple.id}
         onSendMessage={sendMessage}
         onTyping={sendTypingStatus}
+        replyTo={replyTo}
+        onCancelReply={cancelReply}
       />
     </div>
   )

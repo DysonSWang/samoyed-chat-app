@@ -5,6 +5,135 @@
   overflow: hidden;
 }
 
+/* 戳一戳动画 */
+.poke-animation {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  z-index: 1000;
+  animation: pokeFade 2s ease-out forwards;
+  pointer-events: none;
+}
+
+.poke-emoji {
+  font-size: 64px;
+  animation: pokeBounce 0.5s ease-in-out infinite;
+}
+
+.poke-text {
+  font-size: 18px;
+  color: #ff6b6b;
+  font-weight: 600;
+  background: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+@keyframes pokeFade {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+}
+
+@keyframes pokeBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* 可戳头像 */
+.poke-target {
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.poke-target:hover {
+  transform: scale(1.1);
+}
+
+.poke-target:active {
+  transform: scale(0.95);
+}
+
+/* 悄悄话样式 */
+.secret-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #fff5f5 0%, #ffe5e5 100%);
+  border-radius: 8px;
+  border: 1px dashed #ff6b6b;
+}
+
+.secret-icon {
+  font-size: 18px;
+  animation: secretFlicker 1s ease-in-out infinite;
+}
+
+.secret-tip {
+  font-size: 11px;
+  color: #ff6b6b;
+  font-weight: 500;
+}
+
+@keyframes secretFlicker {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.1);
+  }
+}
+
+/* 引用消息样式 */
+.message-with-reply {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.reply-preview {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: rgba(255, 107, 107, 0.1);
+  border-left: 3px solid #ff6b6b;
+  border-radius: 4px;
+  font-size: 13px;
+  max-width: 280px;
+}
+
+.reply-label {
+  color: #ff6b6b;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.reply-text {
+  color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* 选择工具栏 */
 .select-toolbar {
   display: flex;
@@ -45,6 +174,62 @@
 .select-delete:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* 消息右键菜单 */
+.menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 999;
+}
+
+.message-menu {
+  position: fixed;
+  background: white;
+  border-radius: 12px;
+  padding: 8px;
+  min-width: 140px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  animation: menuSlide 0.2s ease;
+}
+
+@keyframes menuSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.message-menu button:hover {
+  background: #f5f5f5;
+}
+
+.message-menu button span {
+  font-size: 18px;
 }
 
 /* 选中状态 */
