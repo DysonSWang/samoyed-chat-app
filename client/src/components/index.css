@@ -1,0 +1,231 @@
+@import './MessageInput.css';
+
+/* 认证页面通用样式 */
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  position: relative;
+}
+
+.auth-container,
+.pair-container {
+  width: 100%;
+  max-width: 400px;
+  background: var(--samoyed-white);
+  border-radius: var(--radius-xl);
+  padding: 32px;
+  box-shadow: var(--shadow-lg);
+}
+
+.auth-header,
+.pair-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.logo {
+  font-size: 64px;
+  margin-bottom: 16px;
+  animation: bounce 2s infinite;
+}
+
+.auth-header h1,
+.pair-header h1 {
+  font-size: 28px;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.auth-header p,
+.pair-header p {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.error-message {
+  background: #FED7D7;
+  color: #C53030;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  text-align: center;
+}
+
+.success-message {
+  background: #C6F6D5;
+  color: #276749;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  text-align: center;
+}
+
+.auth-footer {
+  text-align: center;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--samoyed-cream);
+}
+
+.auth-footer a {
+  color: var(--accent-pink);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.auth-footer a:hover {
+  text-decoration: underline;
+}
+
+.samoyed-decoration {
+  text-align: center;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--samoyed-cream);
+}
+
+.samoyed-emoji {
+  font-size: 48px;
+  margin-bottom: 8px;
+}
+
+.samoyed-decoration p {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+/* 更新后的装饰文字 */
+.samoyed-decoration p::before {
+  content: "陪伴是最长情的告白 🐾";
+}
+
+/* 配对页面 */
+.pair-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.pair-card h3 {
+  font-size: 18px;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.section-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.invite-code-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.code {
+  font-size: 32px;
+  font-weight: bold;
+  color: var(--accent-pink);
+  letter-spacing: 4px;
+  background: var(--samoyed-cream);
+  padding: 16px 32px;
+  border-radius: var(--radius-md);
+  font-family: monospace;
+}
+
+.samoyed-tips {
+  margin-top: 24px;
+  padding: 16px;
+  background: var(--samoyed-cream);
+  border-radius: var(--radius-md);
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.tip-emoji {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.samoyed-tips p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.samoyed-tips strong {
+  color: var(--text-primary);
+}
+
+/* 配对成功页面 */
+.pair-success {
+  text-align: center;
+  background: var(--samoyed-white);
+  border-radius: var(--radius-xl);
+  padding: 48px 32px;
+  box-shadow: var(--shadow-lg);
+}
+
+.success-icon {
+  font-size: 80px;
+  margin-bottom: 24px;
+  animation: bounce 1s infinite;
+}
+
+.pair-success h2 {
+  font-size: 24px;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.pair-success p {
+  color: var(--text-secondary);
+  margin-bottom: 32px;
+}
+
+/* 配对成功页面更新 */
+.pair-success p::after {
+  content: " 🐾";
+}
+
+/* 响应式设计 */
+@media (max-width: 480px) {
+  .auth-container,
+  .pair-container {
+    padding: 24px 20px;
+  }
+  
+  .logo {
+    font-size: 56px;
+  }
+  
+  .auth-header h1,
+  .pair-header h1 {
+    font-size: 24px;
+  }
+}

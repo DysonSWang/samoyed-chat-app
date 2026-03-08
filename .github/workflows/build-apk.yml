@@ -1,0 +1,139 @@
+name: Build Android APK - 萨摩耶之恋
+
+on:
+  push:
+    branches: [main, master, develop]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+
+      - name: Setup Java JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Install Capacitor Dependencies
+        working-directory: ./client
+        run: |
+          npm install @capacitor/core @capacitor/cli @capacitor/android
+
+      - name: Initialize Capacitor
+        working-directory: ./client
+        run: |
+          if [ ! -f "capacitor.config.json" ]; then
+            npx cap init "萨摩耶之恋" "com.samoyed.chat" --web-dir=dist
+          fi
+
+      - name: Install Frontend Dependencies
+        working-directory: ./client
+        run: npm ci
+
+      - name: Build Frontend
+        working-directory: ./client
+        run: npm run build
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Add/Sync Android Platform
+        working-directory: ./client
+        run: |
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
+          npx cap sync android
+
+      - name: Fix Capacitor Java Version
+        working-directory: ./client
+        run: |
+          # 修复 capacitor-android 的 Java 版本兼容性
+          CAP_FILE="node_modules/@capacitor/android/capacitor/build.gradle"
+          if [ -f "$CAP_FILE" ]; then
+            sed -i 's/VERSION_21/VERSION_17/g' "$CAP_FILE"
+            sed -i 's/sourceCompatibility JavaVersion.VERSION_21/sourceCompatibility JavaVersion.VERSION_17/g' "$CAP_FILE"
+            sed -i 's/targetCompatibility JavaVersion.VERSION_21/targetCompatibility JavaVersion.VERSION_17/g' "$CAP_FILE"
+          fi
+          
+          CORDOVA_FILE="android/capacitor-cordova-android-plugins/build.gradle"
+          if [ -f "$CORDOVA_FILE" ]; then
+            sed -i 's/VERSION_21/VERSION_17/g' "$CORDOVA_FILE"
+            sed -i 's/sourceCompatibility JavaVersion.VERSION_21/sourceCompatibility JavaVersion.VERSION_17/g' "$CORDOVA_FILE"
+            sed -i 's/targetCompatibility JavaVersion.VERSION_21/targetCompatibility JavaVersion.VERSION_17/g' "$CORDOVA_FILE"
+          fi
+
+      - name: Setup gradle.properties
+        working-directory: ./client/android
+        run: |
+          cat > gradle.properties << 'EOF'
+          org.gradle.java.home=/opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.10-7/x64
+          android.useAndroidX=true
+          android.enableJetifier=true
+          org.gradle.jvmargs=-Xmx2048m
+          EOF
+
+      - name: Copy Samoyed App Icons
+        working-directory: ./client
+        run: |
+          # 下载萨摩耶图标并生成各尺寸
+          curl -sL "https://images.pexels.com/photos/258957/pexels-photo-258957.jpeg?auto=compress&cs=tinysrgb&w=512&h=512" -o /tmp/samoyed.png
+          
+          python3 << 'PYTHON'
+          from PIL import Image
+          import os
+          
+          img = Image.open('/tmp/samoyed.png')
+          width, height = img.size
+          min_side = min(width, height)
+          left = (width - min_side) // 2
+          top = (height - min_side) // 2
+          img_cropped = img.crop((left, top, left + min_side, top + min_side))
+          img_square = img_cropped.resize((512, 512), Image.Resampling.LANCZOS)
+          
+          sizes = {
+              'mipmap-mdpi': 48,
+              'mipmap-hdpi': 72,
+              'mipmap-xhdpi': 96,
+              'mipmap-xxhdpi': 144,
+              'mipmap-xxxhdpi': 192
+          }
+          
+          for folder, size in sizes.items():
+              img_resized = img_square.resize((size, size), Image.Resampling.LANCZOS)
+              img_resized.save(f'android/app/src/main/res/{folder}/ic_launcher.png')
+              img_resized.save(f'android/app/src/main/res/{folder}/ic_launcher_round.png')
+          PYTHON
+
+      - name: Build Debug APK
+        working-directory: ./client/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: samoyed-chat-app-debug
+          path: client/android/app/build/outputs/apk/debug/*.apk
+          retention-days: 30
+
+      - name: Upload App Icon
+        uses: actions/upload-artifact@v4
+        with:
+          name: samoyed-app-icon
+          path: /tmp/samoyed.png
+          retention-days: 30

@@ -1,0 +1,78 @@
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content {
+  flex: 1;
+  overflow: hidden;
+}
+
+/* 底部导航 */
+.bottom-nav {
+  display: flex;
+  background: #f7f7f7;
+  border-top: 1px solid #e0e0e0;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  gap: 4px;
+}
+
+.nav-item.active {
+  color: #07c160;
+}
+
+.nav-icon {
+  font-size: 24px;
+}
+
+.nav-label {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* 萨摩耶爪印装饰 */
+.paw-print {
+  position: fixed;
+  opacity: 0.1;
+  pointer-events: none;
+  z-index: 0;
+  font-size: 60px;
+}
+
+.paw-print-1 {
+  top: 10%;
+  left: 5%;
+  transform: rotate(-15deg);
+}
+
+.paw-print-2 {
+  top: 20%;
+  right: 8%;
+  transform: rotate(25deg);
+}
+
+.paw-print-3 {
+  bottom: 15%;
+  left: 10%;
+  transform: rotate(-10deg);
+}
+
+.paw-print-4 {
+  bottom: 25%;
+  right: 5%;
+  transform: rotate(20deg);
+}
