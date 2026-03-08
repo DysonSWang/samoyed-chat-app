@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import axios from 'axios'
 import VoiceRecorder from './VoiceRecorder'
+import EmojiPicker from './EmojiPicker'
 import './MessageInput.css'
 
 export default function MessageInput({ token, coupleId, onSendMessage, onTyping }) {
@@ -8,6 +9,7 @@ export default function MessageInput({ token, coupleId, onSendMessage, onTyping 
   const [uploading, setUploading] = useState(false)
   const [showPanel, setShowPanel] = useState(false)
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const fileInputRef = useRef(null)
   const typingTimeoutRef = useRef(null)
 
@@ -143,6 +145,35 @@ export default function MessageInput({ token, coupleId, onSendMessage, onTyping 
     setShowVoiceRecorder(false)
   }
 
+  const openEmojiPicker = () => {
+    setShowEmojiPicker(true)
+    setShowPanel(false)
+  }
+
+  const handleEmojiSelect = async (emoji) => {
+    setUploading(true)
+    setShowEmojiPicker(false)
+
+    try {
+      // 直接发送表情包消息
+      await onSendMessage({
+        content: emoji.name,
+        type: 'emoji',
+        mediaUrl: emoji.url,
+        mediaType: 'image'
+      })
+    } catch (err) {
+      console.error('发送表情包失败:', err)
+      alert('发送失败，请稍后重试')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleCloseEmoji = () => {
+    setShowEmojiPicker(false)
+  }
+
   return (
     <div className="message-input-container">
       {showVoiceRecorder && (
@@ -152,7 +183,22 @@ export default function MessageInput({ token, coupleId, onSendMessage, onTyping 
         />
       )}
 
+      {showEmojiPicker && (
+        <EmojiPicker 
+          onEmojiSelect={handleEmojiSelect}
+          onClose={handleCloseEmoji}
+        />
+      )}
+
       <div className="message-input-wrapper">
+        <button 
+          className="emoji-btn"
+          onClick={openEmojiPicker}
+          disabled={uploading}
+        >
+          <span>😊</span>
+        </button>
+
         <button 
           className="attach-btn"
           onClick={() => setShowPanel(!showPanel)}

@@ -127,6 +127,15 @@ export default function MessageList({ messages, currentUserId, partnerTyping, on
       )
     }
     
+    if (message.type === 'emoji') {
+      return (
+        <div className="emoji-message">
+          <img src={message.media_url} alt={message.content} />
+          {message.content && <span className="emoji-caption">{message.content}</span>}
+        </div>
+      )
+    }
+    
     return <p className="message-content">{message.content}</p>
   }
 

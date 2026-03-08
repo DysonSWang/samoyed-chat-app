@@ -52,6 +52,37 @@
   box-shadow: 0 0 0 3px #07c160;
 }
 
+/* 表情包消息 */
+.emoji-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.emoji-message img {
+  width: 150px;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.emoji-caption {
+  font-size: 12px;
+  color: #718096;
+  text-align: center;
+}
+
+.sent .emoji-message img {
+  border: 2px solid #FFB6C1;
+}
+
+.received .emoji-message img {
+  border: 2px solid #E0E0E0;
+}
+
 /* 菜单遮罩 */
 .menu-overlay {
   position: fixed;
