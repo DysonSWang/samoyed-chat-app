@@ -7,7 +7,7 @@ import MessageList from '../components/MessageList'
 import ChatHeader from '../components/ChatHeader'
 import './Chat.css'
 
-const socket = io.connect(window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin)
+let socket = null
 
 export default function Chat({ token }) {
   const navigate = useNavigate()
@@ -19,16 +19,38 @@ export default function Chat({ token }) {
   const [partnerTyping, setPartnerTyping] = useState(false)
   const [loading, setLoading] = useState(true)
 
+  const socketInitialized = useRef(false)
+
   useEffect(() => {
+    // 初始化 Socket 连接
+    if (!socketInitialized.current) {
+      const serverUrl = window.location.hostname === 'localhost' 
+        ? 'http://localhost:3000' 
+        : `http://${window.location.hostname}:3000`
+      
+      console.log('连接 Socket 服务器:', serverUrl)
+      
+      socket = io(serverUrl, {
+        reconnection: true,
+        reconnectionAttempts: 10,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        timeout: 20000,
+        transports: ['websocket', 'polling']
+      })
+      
+      socketInitialized.current = true
+    }
+
     initChat()
+
     return () => {
-      socket.disconnect()
+      console.log('Chat component unmounted')
     }
   }, [])
 
   const initChat = async () => {
     try {
-      // 获取用户信息
       const userRes = await axios.get('/api/auth/me', {
         headers: { Authorization: `Bearer ${token}` }
       })
@@ -36,18 +58,14 @@ export default function Chat({ token }) {
       if (userRes.data.success) {
         setUser(userRes.data.user)
         
-        // 获取配对信息
         const coupleRes = await axios.get('/api/auth/couple', {
           headers: { Authorization: `Bearer ${token}` }
         })
         
         if (coupleRes.data.success && coupleRes.data.couple) {
           setCouple(coupleRes.data.couple)
-          
-          // 获取聊天记录
           await loadMessages()
           
-          // 连接 Socket
           socket.emit('join', {
             userId: userRes.data.user.id,
             coupleId: coupleRes.data.couple.id
@@ -55,7 +73,6 @@ export default function Chat({ token }) {
           
           setOnline(true)
         } else {
-          // 未配对，跳转到配对页面
           navigate('/pair')
         }
       }
@@ -84,17 +101,30 @@ export default function Chat({ token }) {
     }
   }
 
-  // Socket 事件监听
   useEffect(() => {
-    socket.on('new_message', (message) => {
-      setMessages(prev => [...prev, message])
-    })
+    if (!socket) return
+
+    const handleNewMessage = (message) => {
+      console.log('收到新消息:', message)
+      setMessages(prev => {
+        const exists = prev.find(m => m.id === message.id)
+        if (exists) {
+          console.log('消息已存在，跳过')
+          return prev
+        }
+        return [...prev, message]
+      })
+    }
+
+    socket.on('new_message', handleNewMessage)
 
     socket.on('user_online', () => {
+      console.log('对方上线')
       setPartnerOnline(true)
     })
 
     socket.on('user_offline', () => {
+      console.log('对方下线')
       setPartnerOnline(false)
     })
 
@@ -106,14 +136,29 @@ export default function Chat({ token }) {
       setPartnerTyping(false)
     })
 
+    socket.on('connect', () => {
+      console.log('Socket 已连接:', socket.id)
+    })
+
+    socket.on('disconnect', () => {
+      console.log('Socket 已断开')
+    })
+
+    socket.on('connect_error', (err) => {
+      console.error('Socket 连接错误:', err)
+    })
+
     return () => {
-      socket.off('new_message')
+      socket.off('new_message', handleNewMessage)
       socket.off('user_online')
       socket.off('user_offline')
       socket.off('user_typing')
       socket.off('user_stop_typing')
+      socket.off('connect')
+      socket.off('disconnect')
+      socket.off('connect_error')
     }
-  }, [])
+  }, [socket])
 
   const sendMessage = async (messageData) => {
     try {
@@ -122,14 +167,23 @@ export default function Chat({ token }) {
       })
       
       if (response.data.success) {
-        // 通过 Socket 发送
-        socket.emit('send_message', {
-          coupleId: couple.id,
-          message: response.data.message
-        })
+        // 先添加到本地列表
+        setMessages(prev => [...prev, response.data.message])
+        
+        // 通过 socket 发送给对方
+        if (socket && socket.connected) {
+          socket.emit('send_message', {
+            coupleId: couple.id,
+            message: response.data.message
+          })
+          console.log('消息已发送到 socket')
+        } else {
+          console.warn('Socket 未连接，无法实时推送')
+        }
       }
     } catch (err) {
       console.error('发送消息失败:', err)
+      alert('发送失败，请重试')
     }
   }
 
@@ -141,10 +195,18 @@ export default function Chat({ token }) {
     }
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem('token')
-    socket.disconnect()
-    navigate('/login')
+  const handleDeleteMessages = async (messageIds) => {
+    try {
+      for (const id of messageIds) {
+        await axios.delete(`/api/messages/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      }
+      setMessages(prev => prev.filter(m => !messageIds.includes(m.id)))
+    } catch (err) {
+      console.error('删除失败:', err)
+      alert('删除失败，请重试')
+    }
   }
 
   if (loading) {
@@ -152,7 +214,7 @@ export default function Chat({ token }) {
       <div className="page chat-page">
         <div className="loading-container">
           <div className="loading-emoji">🐕</div>
-          <p>加载中...</p>
+          <p>正在连接...</p>
         </div>
       </div>
     )
@@ -161,16 +223,15 @@ export default function Chat({ token }) {
   return (
     <div className="page chat-page">
       <ChatHeader 
-        user={user} 
         couple={couple} 
         partnerOnline={partnerOnline}
-        onLogout={handleLogout}
       />
       
       <MessageList 
         messages={messages}
         currentUserId={user?.id}
         partnerTyping={partnerTyping}
+        onDeleteMessages={handleDeleteMessages}
       />
       
       <MessageInput 

@@ -56,7 +56,7 @@ export default function Register({ onRegister }) {
         <div className="auth-header">
           <div className="logo">🐕</div>
           <h1>加入我们</h1>
-          <p>开启你们的萨摩耶之恋</p>
+          <p>记录你和毛孩子的日常</p>
         </div>
 
         <form className="auth-form" onSubmit={handleSubmit}>
@@ -122,7 +122,7 @@ export default function Register({ onRegister }) {
 
         <div className="samoyed-decoration">
           <div className="samoyed-emoji">🦊</div>
-          <p>在这里，每句情话都被温柔珍藏</p>
+          <p>在这里，每个瞬间都被温柔记录</p>
         </div>
       </div>
     </div>

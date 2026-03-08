@@ -226,6 +226,23 @@ router.post('/accept-invite', authMiddleware, (req, res) => {
   }
 });
 
+// 更新头像
+router.put('/avatar', authMiddleware, (req, res) => {
+  try {
+    const { avatar } = req.body;
+    const db = getDatabase();
+    
+    db.prepare(`
+      UPDATE users SET avatar = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
+    `).run(avatar, req.userId);
+    
+    res.json({ success: true, message: '头像已更新' });
+  } catch (err) {
+    console.error('更新头像失败:', err);
+    res.status(500).json({ error: '更新头像失败' });
+  }
+});
+
 // 获取配对信息
 router.get('/couple', authMiddleware, (req, res) => {
   try {

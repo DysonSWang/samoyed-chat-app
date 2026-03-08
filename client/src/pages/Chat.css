@@ -5,6 +5,101 @@
   overflow: hidden;
 }
 
+/* 选择工具栏 */
+.select-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #07c160;
+  color: white;
+  font-size: 15px;
+}
+
+.select-count {
+  font-weight: 600;
+}
+
+.select-cancel,
+.select-delete {
+  padding: 6px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.select-cancel {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  margin-left: 12px;
+}
+
+.select-delete {
+  background: rgba(255, 255, 255, 0.9);
+  color: #d63030;
+  margin-left: 8px;
+}
+
+.select-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 选中状态 */
+.message-item.selected .message-bubble {
+  box-shadow: 0 0 0 3px #07c160;
+}
+
+/* 菜单遮罩 */
+.menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 998;
+}
+
+/* 消息菜单 */
+.message-menu {
+  position: fixed;
+  background: rgba(50, 50, 50, 0.95);
+  border-radius: 8px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 120px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 999;
+  animation: scaleIn 0.2s ease;
+}
+
+.message-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.2s;
+  text-align: left;
+}
+
+.message-menu button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.message-menu span {
+  font-size: 18px;
+}
+
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -22,10 +117,10 @@
 .chat-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 16px;
-  background: var(--samoyed-white);
-  box-shadow: var(--shadow-sm);
+  justify-content: center;
+  padding: 12px 16px;
+  background: #f7f7f7;
+  border-bottom: 1px solid #e0e0e0;
   z-index: 10;
 }
 
@@ -36,53 +131,43 @@
 }
 
 .partner-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--samoyed-pink) 0%, var(--accent-pink) 100%);
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #FFB6C1 0%, #FF9EAA 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: 22px;
   position: relative;
+  flex-shrink: 0;
 }
 
 .online-indicator {
   position: absolute;
-  bottom: 2px;
-  right: 2px;
+  bottom: -2px;
+  right: -2px;
   width: 12px;
   height: 12px;
-  background: #48BB78;
-  border: 2px solid var(--samoyed-white);
+  background: #07c160;
+  border: 2px solid white;
   border-radius: 50%;
 }
 
 .partner-info h3 {
-  font-size: 16px;
-  color: var(--text-primary);
+  font-size: 15px;
+  color: #333;
+  margin: 0;
 }
 
 .partner-status {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: #999;
+  margin-top: 2px;
 }
 
 .partner-status.online {
-  color: #48BB78;
-}
-
-.logout-btn {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  opacity: 0.6;
-  transition: opacity 0.3s;
-}
-
-.logout-btn:hover {
-  opacity: 1;
+  color: #07c160;
 }
 
 /* 消息列表 */
@@ -90,7 +175,7 @@
   flex: 1;
   overflow-y: auto;
   padding: 16px;
-  background: var(--bg-chat);
+  background: #f5f5f5;
 }
 
 .message-item {
@@ -109,51 +194,84 @@
 
 .message-bubble {
   max-width: 70%;
-  padding: 12px 16px;
-  border-radius: var(--radius-lg);
+  padding: 10px 14px;
+  border-radius: 6px;
   position: relative;
+  word-wrap: break-word;
 }
 
 .message-item.sent .message-bubble {
-  background: var(--message-sent);
-  color: var(--text-primary);
-  border-bottom-right-radius: 4px;
+  background: #95ec69;
+  color: #000;
+  border-bottom-right-radius: 2px;
 }
 
 .message-item.received .message-bubble {
-  background: var(--message-received);
-  color: var(--text-primary);
-  border-bottom-left-radius: 4px;
-  box-shadow: var(--shadow-sm);
+  background: white;
+  color: #000;
+  border-bottom-left-radius: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .message-content {
-  word-wrap: break-word;
   line-height: 1.5;
+  font-size: 15px;
+  margin: 0;
 }
 
 .message-time {
   font-size: 11px;
-  color: var(--text-light);
+  color: #999;
   margin-top: 4px;
   text-align: right;
 }
 
 /* 媒体消息 */
 .media-message {
-  max-width: 100%;
-  border-radius: var(--radius-md);
+  max-width: 240px;
+  border-radius: 6px;
   overflow: hidden;
+  cursor: pointer;
 }
 
 .media-message img {
   max-width: 100%;
   display: block;
+  border-radius: 6px;
 }
 
 .media-message video {
   max-width: 100%;
   display: block;
+  border-radius: 6px;
+  position: relative;
+}
+
+.media-message video {
+  max-width: 100%;
+  display: block;
+  border-radius: 6px;
+}
+
+.media-message {
+  position: relative;
+}
+
+.video-play-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 48px;
+  color: white;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+.message-caption {
+  font-size: 13px;
+  color: #666;
+  margin: 8px 0 0 0;
 }
 
 /* 输入状态 */
@@ -161,9 +279,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
+  padding: 4px 0;
   font-size: 13px;
-  color: var(--text-secondary);
+  color: #999;
 }
 
 .typing-dots {
@@ -174,7 +292,7 @@
 .typing-dot {
   width: 6px;
   height: 6px;
-  background: var(--samoyed-pink);
+  background: #999;
   border-radius: 50%;
   animation: pulse 1.4s infinite;
 }
@@ -194,12 +312,50 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: var(--text-secondary);
+  color: #999;
   text-align: center;
+  padding: 40px 20px;
 }
 
 .empty-chat-emoji {
   font-size: 64px;
   margin-bottom: 16px;
   opacity: 0.5;
+}
+
+.empty-chat p {
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+/* 时间戳 */
+.message-timestamp {
+  text-align: center;
+  margin: 20px 0;
+}
+
+.message-timestamp span {
+  background: rgba(0, 0, 0, 0.3);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+/* 滚动条美化 */
+.message-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.message-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.message-list::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.message-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
 }

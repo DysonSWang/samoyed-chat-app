@@ -18,6 +18,8 @@ function initDatabase() {
 
       db = new Database(DB_PATH);
       db.pragma('journal_mode = WAL');
+      
+      // 设置时区为东八区（SQLite 存储 UTC，应用层转换）
 
       // 创建用户表
       db.exec(`
@@ -57,6 +59,7 @@ function initDatabase() {
           type TEXT DEFAULT 'text',
           media_url TEXT,
           media_type TEXT,
+          duration INTEGER,
           is_deleted INTEGER DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (couple_id) REFERENCES couples(id),

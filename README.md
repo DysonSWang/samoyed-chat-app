@@ -1,6 +1,6 @@
-# 🐕 萨摩耶之恋 - Samoyed Love
+# 🐕 萨摩耶之家 - Samoyed Home
 
-> 专为情侣打造的私密聊天空间 · 以萨摩耶为伴 · 以爱为名
+> 专为狗狗和主人打造的记录空间 · 以萨摩耶为伴 · 记录成长点滴
 
 **技术栈**: Node.js + Express + Socket.io + React + 阿里云 OSS
 
@@ -11,10 +11,11 @@
 - 💬 **实时聊天** - WebSocket 双工通信，消息即时送达
 - 🖼️ **图片分享** - 阿里云 OSS 存储，高清无损
 - 🎥 **视频分享** - 支持 MP4 格式视频上传
+- 🎤 **语音消息** - 浏览器原生录音，类似微信体验 ✨ NEW
 - 🐕 **萨摩耶主题** - 可爱治愈系 UI 设计
-- 🔐 **情侣配对** - 邀请码机制，私密二人空间
-- 🌙 **夜间模式** - 护眼深色主题
+- 🔐 **家人绑定** - 邀请码机制，私密空间
 - 📱 **移动优先** - 完美适配手机屏幕
+- 🎨 **微信风格** - 熟悉的聊天体验
 
 ---
 
@@ -41,7 +42,6 @@ cd ../client
 npm install
 
 # 4. 配置环境变量
-# 复制 .env.example 到 .env 并填写配置
 cp .env.example .env
 ```
 
@@ -66,19 +66,15 @@ npm run dev
 ```
 samoyed-chat/
 ├── server/                 # 后端服务
-│   ├── routes/            # API 路由
-│   ├── models/            # 数据模型
-│   ├── middleware/        # 中间件
-│   ├── utils/             # 工具函数
-│   └── uploads/           # 临时上传目录
+│   ├── src/
+│   │   ├── routes/        # API 路由
+│   │   └── models/        # 数据模型
+│   └── .env               # 环境配置
 ├── client/                 # 前端应用
 │   ├── src/
 │   │   ├── components/    # React 组件
-│   │   ├── pages/         # 页面
-│   │   ├── hooks/         # 自定义 Hooks
-│   │   ├── utils/         # 工具函数
-│   │   └── assets/        # 静态资源
-│   └── public/
+│   │   └── pages/         # 页面
+│   └── package.json
 └── README.md
 ```
 
@@ -91,13 +87,9 @@ samoyed-chat/
 ```bash
 # 服务器配置
 PORT=3000
-NODE_ENV=development
-
-# 数据库配置
-DB_PATH=./data/chat.db
 
 # JWT 配置
-JWT_SECRET=your-secret-key-here
+JWT_SECRET=your-secret-key
 
 # 阿里云 OSS 配置
 OSS_BUCKET=annsight-images
@@ -109,51 +101,22 @@ OSS_CDN_URL=https://annsight-images.oss-cn-shenzhen.aliyuncs.com
 
 ---
 
-## 📖 API 文档
+## 📖 使用流程
 
-### 认证接口
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | /api/auth/register | 用户注册 |
-| POST | /api/auth/login | 用户登录 |
-| POST | /api/auth/pair | 情侣配对 |
-
-### 消息接口
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | /api/messages | 获取聊天记录 |
-| POST | /api/messages | 发送消息 |
-| DELETE | /api/messages/:id | 删除消息 |
-
-### 上传接口
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | /api/upload/image | 上传图片 |
-| POST | /api/upload/video | 上传视频 |
+1. **注册账号** - 创建你的账号
+2. **生成邀请码** - 分享给家人
+3. **绑定关系** - 家人输入邀请码
+4. **开始聊天** - 发送文字、图片、视频、语音 🎤
 
 ---
 
-## 🎨 主题色
+## 🎨 界面特色
 
-| 颜色 | 色值 | 用途 |
-|------|------|------|
-| 萨摩耶白 | `#FFFFFF` | 主背景 |
-| 暖粉色 | `#FFB6C1` | 强调色 |
-| 深空灰 | `#2D3748` | 文字 |
-| 奶油色 | `#FFF5F7` | 次要背景 |
-
----
-
-## 🔒 安全说明
-
-- 所有通信使用 HTTPS 加密
-- 密码使用 bcrypt 加密存储
-- JWT Token 24 小时过期
-- 文件上传限制大小和类型
-- 情侣配对需双方确认
+- 微信风格输入框
+- 个人信息侧边栏
+- 实时消息同步
+- 输入状态提示
+- 在线状态显示
 
 ---
 
@@ -163,4 +126,6 @@ OSS_CDN_URL=https://annsight-images.oss-cn-shenzhen.aliyuncs.com
 
 ---
 
-**以毛茸茸的萨摩耶见证你们的爱情** 🐕💕
+**陪伴是最长情的告白** 🐾
+
+*记录你和毛孩子的每一个温馨瞬间*

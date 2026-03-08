@@ -115,6 +115,11 @@
   font-size: 13px;
 }
 
+/* 更新后的装饰文字 */
+.samoyed-decoration p::before {
+  content: "陪伴是最长情的告白 🐾";
+}
+
 /* 配对页面 */
 .pair-sections {
   display: flex;
@@ -201,6 +206,11 @@
 .pair-success p {
   color: var(--text-secondary);
   margin-bottom: 32px;
+}
+
+/* 配对成功页面更新 */
+.pair-success p::after {
+  content: " 🐾";
 }
 
 /* 响应式设计 */

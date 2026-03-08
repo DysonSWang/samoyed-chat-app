@@ -22,9 +22,11 @@ const server = http.createServer(app);
 // Socket.IO 配置
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: '*',  // 允许所有来源
     methods: ['GET', 'POST']
-  }
+  },
+  pingTimeout: 60000,
+  pingInterval: 25000
 });
 
 // 中间件
@@ -62,11 +64,11 @@ io.on('connection', (socket) => {
     socket.to(`couple_${coupleId}`).emit('user_online', { userId });
   });
 
-  // 实时消息
+  // 实时消息 - 只发送给其他人，不发送给发送者
   socket.on('send_message', (data) => {
     const { coupleId, message } = data;
-    io.to(`couple_${coupleId}`).emit('new_message', message);
-    console.log(`新消息发送到 couple_${coupleId}`);
+    socket.to(`couple_${coupleId}`).emit('new_message', message);
+    console.log(`新消息广播到 couple_${coupleId}, 发送者：${message.sender_id}`);
   });
 
   // 输入状态
@@ -108,7 +110,7 @@ initDatabase()
     server.listen(PORT, () => {
       console.log(`
 ╔════════════════════════════════════════╗
-║   🐕 萨摩耶之恋 - 后端服务已启动       ║
+║   🐕 萨摩耶之家 - 后端服务已启动       ║
 ║   端口：${PORT}                          ║
 ║   环境：${process.env.NODE_ENV}                    ║
 ╚════════════════════════════════════════╝

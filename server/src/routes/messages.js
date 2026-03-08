@@ -72,16 +72,20 @@ router.post('/', authMiddleware, (req, res) => {
       return res.status(400).json({ error: '您还未配对，无法发送消息' });
     }
 
-    const { content, type = 'text', mediaUrl, mediaType } = req.body;
+    const { content, type = 'text', mediaUrl, mediaType, duration } = req.body;
 
     if (!content && !mediaUrl) {
       return res.status(400).json({ error: '消息内容不能为空' });
     }
 
+    // 使用东八区时间戳
+    const now = new Date();
+    const beijingTime = new Date(now.getTime() + (8 * 3600000));
+    
     const result = db.prepare(`
-      INSERT INTO messages (couple_id, sender_id, content, type, media_url, media_type)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(user.couple_id, req.userId, content || '', type, mediaUrl || null, mediaType || null);
+      INSERT INTO messages (couple_id, sender_id, content, type, media_url, media_type, duration, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, datetime(?, 'localtime'))
+    `).run(user.couple_id, req.userId, content || '', type, mediaUrl || null, mediaType || null, duration || null, beijingTime.toISOString());
 
     const message = db.prepare(`
       SELECT m.*, u.username as sender_username, u.nickname as sender_nickname, u.avatar as sender_avatar

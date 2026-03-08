@@ -66,7 +66,7 @@ export default function Pair() {
       })
       
       if (response.data.success) {
-        setSuccess('🎉 配对成功！即将进入聊天室...')
+        setSuccess('🎉 绑定成功！即将进入聊天室...')
         setTimeout(() => {
           navigate('/chat')
         }, 1500)
@@ -87,9 +87,9 @@ export default function Pair() {
     return (
       <div className="page pair-page">
         <div className="pair-success animate-fade-in">
-          <div className="success-icon">💕</div>
-          <h2>你们已经配对成功！</h2>
-          <p>像萨摩耶一样陪伴彼此</p>
+          <div className="success-icon">🎉</div>
+          <h2>绑定成功！</h2>
+          <p>一起记录毛孩子的成长点滴</p>
           <button 
             className="btn btn-primary"
             onClick={() => navigate('/chat')}
@@ -109,15 +109,15 @@ export default function Pair() {
       <div className="pair-container animate-fade-in">
         <div className="pair-header">
           <div className="logo">🐕</div>
-          <h1>情侣配对</h1>
-          <p>邀请你的 TA 加入萨摩耶之恋</p>
+          <h1>绑定关系</h1>
+          <p>邀请你的家人一起加入</p>
         </div>
 
         <div className="pair-sections">
           {/* 生成邀请码 */}
           <div className="card pair-card">
             <h3>📤 生成邀请码</h3>
-            <p className="section-desc">生成专属邀请码，分享给你的 TA</p>
+            <p className="section-desc">生成专属邀请码，分享给家人</p>
             
             {inviteCode ? (
               <div className="invite-code-display">
@@ -140,7 +140,7 @@ export default function Pair() {
           {/* 接受邀请 */}
           <div className="card pair-card">
             <h3>📥 接受邀请</h3>
-            <p className="section-desc">输入 TA 分享给你的邀请码</p>
+            <p className="section-desc">输入家人分享给你的邀请码</p>
             
             <div className="form-group">
               <input
@@ -171,7 +171,7 @@ export default function Pair() {
           <p>
             <strong>小贴士：</strong>
             邀请码 8 位字母数字组合，有效期 7 天。
-            配对后，只有你们两人可以查看聊天记录哦～
+            绑定后，只有你们可以查看聊天记录哦～
           </p>
         </div>
       </div>

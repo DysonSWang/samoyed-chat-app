@@ -37,8 +37,8 @@ export default function Login({ onLogin }) {
       <div className="auth-container animate-fade-in">
         <div className="auth-header">
           <div className="logo">🐕</div>
-          <h1>萨摩耶之恋</h1>
-          <p>欢迎回来，继续你们的甜蜜对话</p>
+          <h1>萨摩耶之家</h1>
+          <p>欢迎回来，继续你和毛孩子的对话</p>
         </div>
 
         <form className="auth-form" onSubmit={handleSubmit}>

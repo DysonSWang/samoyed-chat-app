@@ -1,21 +1,23 @@
 import { useState, useRef } from 'react'
 import axios from 'axios'
+import VoiceRecorder from './VoiceRecorder'
+import './MessageInput.css'
 
 export default function MessageInput({ token, coupleId, onSendMessage, onTyping }) {
   const [message, setMessage] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [showPanel, setShowPanel] = useState(false)
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false)
   const fileInputRef = useRef(null)
   const typingTimeoutRef = useRef(null)
 
   const handleTyping = () => {
     onTyping?.(true)
     
-    // 清除之前的定时器
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current)
     }
     
-    // 2 秒后停止输入状态
     typingTimeoutRef.current = setTimeout(() => {
       onTyping?.(false)
     }, 2000)
@@ -33,6 +35,7 @@ export default function MessageInput({ token, coupleId, onSendMessage, onTyping 
     
     setMessage('')
     onTyping?.(false)
+    setShowPanel(false)
   }
 
   const handleKeyPress = (e) => {
@@ -46,27 +49,19 @@ export default function MessageInput({ token, coupleId, onSendMessage, onTyping 
     const file = e.target.files[0]
     if (!file) return
 
-    // 验证文件类型
-    const isImage = file.type.startsWith('image/')
-    const isVideo = file.type.startsWith('video/')
-    
-    if (!isImage && !isVideo) {
-      alert('请选择图片或视频文件')
-      return
-    }
-
-    // 验证文件大小（20MB）
     if (file.size > 20 * 1024 * 1024) {
       alert('文件大小不能超过 20MB')
       return
     }
 
     setUploading(true)
+    setShowPanel(false)
 
     try {
       const formData = new FormData()
       formData.append('file', file)
 
+      const isVideo = file.type.startsWith('video/')
       const endpoint = isVideo ? '/api/upload/video' : '/api/upload/image'
       
       const response = await axios.post(endpoint, formData, {
@@ -79,34 +74,109 @@ export default function MessageInput({ token, coupleId, onSendMessage, onTyping 
       if (response.data.success) {
         await onSendMessage({
           content: '',
-          type: response.data.type,
+          type: isVideo ? 'video' : 'image',
           mediaUrl: response.data.url,
           mediaType: response.data.mimeType
         })
       }
     } catch (err) {
       console.error('上传失败:', err)
-      alert('上传失败：' + (err.response?.data?.error || '请稍后重试'))
+      const errorMsg = err.code === 'ENOTFOUND' 
+        ? '网络错误，请检查连接' 
+        : (err.response?.data?.error || '上传失败，请稍后重试')
+      alert(errorMsg)
     } finally {
       setUploading(false)
-      // 清空文件输入
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
       }
     }
   }
 
+  const openAttachmentPicker = () => {
+    fileInputRef.current?.click()
+    setShowPanel(false)
+  }
+
+  const openVoiceRecorder = () => {
+    setShowVoiceRecorder(true)
+    setShowPanel(false)
+  }
+
+  const handleRecordEnd = async (audioBlob, duration) => {
+    setUploading(true)
+    setShowVoiceRecorder(false)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', audioBlob, `recording-${Date.now()}.webm`)
+      formData.append('duration', duration.toString())
+
+      const response = await axios.post('/api/upload/audio', formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+
+      if (response.data.success) {
+        await onSendMessage({
+          content: '',
+          type: 'audio',
+          mediaUrl: response.data.url,
+          mediaType: response.data.mimeType,
+          duration: response.data.duration || duration
+        })
+      }
+    } catch (err) {
+      console.error('上传音频失败:', err)
+      const errorMsg = err.code === 'ENOTFOUND' 
+        ? '网络错误，请检查连接' 
+        : (err.response?.data?.error || '上传失败，请稍后重试')
+      alert(errorMsg)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleCancelRecording = () => {
+    setShowVoiceRecorder(false)
+  }
+
   return (
     <div className="message-input-container">
+      {showVoiceRecorder && (
+        <VoiceRecorder 
+          onRecordEnd={handleRecordEnd}
+          onCancel={handleCancelRecording}
+        />
+      )}
+
       <div className="message-input-wrapper">
         <button 
           className="attach-btn"
-          onClick={() => fileInputRef.current?.click()}
+          onClick={() => setShowPanel(!showPanel)}
           disabled={uploading}
-          title="发送图片或视频"
         >
-          {uploading ? '📤' : '📎'}
+          <svg viewBox="0 0 24 24" width="24" height="24">
+            <circle cx="12" cy="12" r="2" fill="currentColor"/>
+            <circle cx="12" cy="5" r="2" fill="currentColor"/>
+            <circle cx="12" cy="19" r="2" fill="currentColor"/>
+          </svg>
         </button>
+        
+        {showPanel && (
+          <div className="attach-panel">
+            <button className="attach-option" onClick={openAttachmentPicker}>
+              <span className="emoji">📎</span>
+              <span>附件</span>
+            </button>
+            <button className="attach-option" onClick={openVoiceRecorder}>
+              <span className="emoji">🎤</span>
+              <span>语音</span>
+            </button>
+          </div>
+        )}
         
         <input
           ref={fileInputRef}
@@ -116,31 +186,39 @@ export default function MessageInput({ token, coupleId, onSendMessage, onTyping 
           style={{ display: 'none' }}
         />
 
-        <textarea
-          className="message-input"
-          value={message}
-          onChange={(e) => {
-            setMessage(e.target.value)
-            handleTyping()
-          }}
-          onKeyPress={handleKeyPress}
-          placeholder="输入消息..."
-          rows="1"
-          disabled={uploading}
-        />
+        <div className="input-box">
+          <textarea
+            className="message-input"
+            value={message}
+            onChange={(e) => {
+              setMessage(e.target.value)
+              handleTyping()
+            }}
+            onKeyPress={handleKeyPress}
+            placeholder="发消息..."
+            rows="1"
+            disabled={uploading}
+          />
+        </div>
 
         <button 
           className="send-btn"
           onClick={handleSendMessage}
           disabled={!message.trim() || uploading}
         >
-          {uploading ? '⏳' : '📤'}
+          {uploading ? (
+            <span className="loading-spinner"></span>
+          ) : (
+            <svg viewBox="0 0 24 24" width="24" height="24">
+              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" fill="currentColor"/>
+            </svg>
+          )}
         </button>
       </div>
 
       {uploading && (
         <div className="uploading-status">
-          <span className="loading"></span>
+          <span className="loading-spinner"></span>
           上传中...
         </div>
       )}
