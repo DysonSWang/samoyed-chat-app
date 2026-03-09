@@ -41,7 +41,6 @@ jobs:
         run: |
           echo "🔧 修复 Capacitor Java 版本要求..."
           
-          # 修复 capacitor-android 的 build.gradle
           CAP_FILE="node_modules/@capacitor/android/capacitor/build.gradle"
           if [ -f "$CAP_FILE" ]; then
             sed -i 's/VERSION_21/VERSION_17/g' "$CAP_FILE"
@@ -50,19 +49,6 @@ jobs:
             sed -i 's/sourceCompatibility JavaVersion.VERSION_21/sourceCompatibility JavaVersion.VERSION_17/g' "$CAP_FILE"
             sed -i 's/targetCompatibility JavaVersion.VERSION_21/targetCompatibility JavaVersion.VERSION_17/g' "$CAP_FILE"
             echo "✓ Fixed: $CAP_FILE"
-            grep -A2 "compileOptions" "$CAP_FILE" || true
-          fi
-          
-          # 修复 capacitor-cordova-android-plugins 的 build.gradle
-          CORDOVA_FILE="android/capacitor-cordova-android-plugins/build.gradle"
-          if [ -f "$CORDOVA_FILE" ]; then
-            sed -i 's/VERSION_21/VERSION_17/g' "$CORDOVA_FILE"
-            sed -i 's/VERSION21/VERSION17/g' "$CORDOVA_FILE"
-            sed -i "s/= '21'/= '17'/g" "$CORDOVA_FILE"
-            sed -i 's/sourceCompatibility JavaVersion.VERSION_21/sourceCompatibility JavaVersion.VERSION_17/g' "$CORDOVA_FILE"
-            sed -i 's/targetCompatibility JavaVersion.VERSION_21/targetCompatibility JavaVersion.VERSION_17/g' "$CORDOVA_FILE"
-            echo "✓ Fixed: $CORDOVA_FILE"
-            grep -A2 "compileOptions" "$CORDOVA_FILE" || true
           fi
           
           echo "✅ Java 版本修复完成"
@@ -70,16 +56,13 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Add Android Platform
+        working-directory: ./client
+        run: npx cap add android
+
       - name: Sync Capacitor
         working-directory: ./client
-        run: |
-          echo "📱 开始 Sync Capacitor..."
-          ls -la
-          echo "---"
-          ls -la dist/ || echo "dist not found"
-          echo "---"
-          npx cap sync android 2>&1
-          echo "✅ Sync complete"
+        run: npx cap sync android
 
       - name: Setup gradle.properties
         working-directory: ./client/android
