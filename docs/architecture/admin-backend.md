@@ -32,10 +32,12 @@
 
 | 技术 | 选型 | 理由 |
 |------|------|------|
-| 框架 | [待选择] | |
-| UI 库 | [待选择] | |
-| 状态管理 | [待选择] | |
-| 路由 | [待选择] | |
+| 框架 | React 18 | 与现有聊天应用一致，团队熟悉 |
+| UI 库 | Ant Design 5.x | 丰富的管理组件，企业级设计 |
+| 状态管理 | Zustand | 轻量简单，与现有项目一致 |
+| 路由 | React Router 6 | 标准方案，支持嵌套路由 |
+| 构建工具 | Vite 5.x | 快速热更新，与现有项目一致 |
+| 语言 | TypeScript | 类型安全，减少运行时错误 |
 
 ### 2.2 后端技术栈
 
@@ -236,11 +238,97 @@ Nginx (443) → 管理后台前端 (3000)
 
 ## 9. 待决策事项
 
-- [ ] 前端框架选择（React vs Vue）
-- [ ] UI 组件库选择
-- [ ] 是否使用 TypeScript
+- [x] 前端框架选择（React vs Vue）→ **React 18**
+- [x] UI 组件库选择 → **Ant Design 5.x**
+- [x] 是否使用 TypeScript → **是**
 
 ---
 
-**最后更新**: 2026-03-09  
-**下一步**: 架构师填充技术选型细节
+## 10. 项目初始化命令
+
+### 后端初始化
+```bash
+cd samoyed-chat
+mkdir -p admin-backend/{src/{routes,controllers,models,middleware,utils},data}
+cd admin-backend
+npm init -y
+npm install express better-sqlite3 jsonwebtoken bcryptjs cors helmet morgan
+npm install -D nodemon
+```
+
+### 前端初始化
+```bash
+cd samoyed-chat
+npm create vite@latest admin-frontend -- --template react-ts
+cd admin-frontend
+npm install
+npm install antd zustand react-router-dom axios @ant-design/icons
+npm install -D @types/node
+```
+
+---
+
+## 11. 目录结构详情
+
+```
+samoyed-chat/
+├── admin-backend/              # 管理后台后端
+│   ├── src/
+│   │   ├── index.js           # 入口文件
+│   │   ├── routes/
+│   │   │   ├── auth.js        # 认证路由
+│   │   │   ├── users.js       # 用户管理路由
+│   │   │   ├── messages.js    # 内容审核路由
+│   │   │   └── stats.js       # 统计路由
+│   │   ├── controllers/
+│   │   │   ├── authController.js
+│   │   │   ├── userController.js
+│   │   │   ├── messageController.js
+│   │   │   └── statsController.js
+│   │   ├── models/
+│   │   │   ├── database.js    # 数据库连接
+│   │   │   ├── admin.js       # 管理员模型
+│   │   │   └── log.js         # 操作日志模型
+│   │   ├── middleware/
+│   │   │   ├── auth.js        # JWT 认证中间件
+│   │   │   ├── rbac.js        # 权限控制中间件
+│   │   │   └── logger.js      # 操作日志中间件
+│   │   └── utils/
+│   │       └── jwt.js         # JWT 工具
+│   ├── data/
+│   │   └── chat.db            # 共享数据库
+│   ├── .env
+│   └── package.json
+│
+├── admin-frontend/             # 管理后台前端
+│   ├── src/
+│   │   ├── App.tsx
+│   │   ├── main.tsx
+│   │   ├── pages/
+│   │   │   ├── Login.tsx      # 登录页
+│   │   │   ├── Dashboard.tsx  # 仪表盘
+│   │   │   ├── Users.tsx      # 用户管理
+│   │   │   ├── Messages.tsx   # 内容审核
+│   │   │   └── Stats.tsx      # 数据统计
+│   │   ├── components/
+│   │   │   ├── Layout.tsx     # 布局组件
+│   │   │   ├── Sidebar.tsx    # 侧边栏
+│   │   │   └── Header.tsx     # 顶部导航
+│   │   ├── api/
+│   │   │   └── index.ts       # API 客户端
+│   │   ├── store/
+│   │   │   └── authStore.ts   # 认证状态
+│   │   └── utils/
+│   │       └── request.ts     # 请求封装
+│   └── package.json
+│
+└── docs/
+    └── architecture/
+        └── admin-backend.md   # 本文档
+```
+
+---
+
+**最后更新**: 2026-03-09 12:00  
+**状态**: ✅ 架构设计完成  
+**下一步**: 开始项目初始化 (TASK-DEV-001)
