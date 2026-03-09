@@ -45,13 +45,6 @@ jobs:
         working-directory: ./client
         run: npm install @capacitor/core @capacitor/cli @capacitor/android
 
-      - name: Initialize Capacitor
-        working-directory: ./client
-        run: |
-          if [ ! -f "capacitor.config.json" ]; then
-            npx cap init "萨摩耶之恋" "com.samoyed.chat" --web-dir=dist
-          fi
-
       - name: Add Android Platform
         working-directory: ./client
         run: npx cap add android
