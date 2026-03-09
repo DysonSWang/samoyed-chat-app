@@ -42,7 +42,15 @@ jobs:
         working-directory: ./client
         run: npm install @capacitor/core @capacitor/cli @capacitor/android
 
-      - name: Sync Capacitor Android
+      - name: Remove existing android directory
+        working-directory: ./client
+        run: rm -rf android
+
+      - name: Add Android Platform (fresh)
+        working-directory: ./client
+        run: npx cap add android
+
+      - name: Sync Capacitor
         working-directory: ./client
         run: npx cap sync android
 
