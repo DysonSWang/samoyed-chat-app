@@ -25,8 +25,8 @@ npm-debug.log*
 .env.local
 .env.production
 
-# Capacitor
-capacitor.config.json
+# Capacitor (config should be committed)
+# capacitor.config.json
 
 # Android local config
 android/local.properties
