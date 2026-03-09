@@ -27,6 +27,14 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
+      - name: Install Dependencies
+        working-directory: ./client
+        run: npm ci
+
+      - name: Build Frontend
+        working-directory: ./client
+        run: npm run build
+
       - name: Fix Capacitor Java Version
         working-directory: ./client
         run: |
@@ -36,19 +44,13 @@ jobs:
           sed -i 's/sourceCompatibility JavaVersion.VERSION_21/sourceCompatibility JavaVersion.VERSION_17/g' "$CAP_FILE"
           sed -i 's/targetCompatibility JavaVersion.VERSION_21/targetCompatibility JavaVersion.VERSION_17/g' "$CAP_FILE"
           
-          # 修复 cordova-android-plugins
-          CORDOVA_FILE="android/capacitor-cordova-android-plugins/build.gradle"
-          sed -i 's/VERSION_21/VERSION_17/g' "$CORDOVA_FILE"
-          sed -i 's/sourceCompatibility JavaVersion.VERSION_21/sourceCompatibility JavaVersion.VERSION_17/g' "$CORDOVA_FILE"
-          sed -i 's/targetCompatibility JavaVersion.VERSION_21/targetCompatibility JavaVersion.VERSION_17/g' "$CORDOVA_FILE"
-
-      - name: Install Dependencies
-        working-directory: ./client
-        run: npm ci
-
-      - name: Build Frontend
-        working-directory: ./client
-        run: npm run build
+          # 修复 cordova-android-plugins (如果存在)
+          if [ -f "android/capacitor-cordova-android-plugins/build.gradle" ]; then
+            CORDOVA_FILE="android/capacitor-cordova-android-plugins/build.gradle"
+            sed -i 's/VERSION_21/VERSION_17/g' "$CORDOVA_FILE"
+            sed -i 's/sourceCompatibility JavaVersion.VERSION_21/sourceCompatibility JavaVersion.VERSION_17/g' "$CORDOVA_FILE"
+            sed -i 's/targetCompatibility JavaVersion.VERSION_21/targetCompatibility JavaVersion.VERSION_17/g' "$CORDOVA_FILE"
+          fi
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
